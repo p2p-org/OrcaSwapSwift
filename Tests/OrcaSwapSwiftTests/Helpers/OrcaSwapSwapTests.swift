@@ -24,22 +24,27 @@ class OrcaSwapSwapTests: XCTestCase {
         poolsRepository = try JSONDecoder().decode([String: OrcaSwap.Pool].self, from: OrcaSwap.getFileFrom(type: "pools", network: "mainnet"))
     }
     
-    func setUp(testName: String) throws {
+    func setUp(testJSONFile: String, testName: String) throws {
+        let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!
+        
         let accountStorage = InMemoryAccountStorage()
         
+        let network = SolanaSDK.Network.mainnetBeta
+        let orcaSwapNetwork = network == .mainnetBeta ? "mainnet": network.cluster
+        
         solanaSDK = SolanaSDK(
-            endpoint: endpoint,
+            endpoint: .init(address: test.endpoint, network: network, additionalQuery: test.endpointAdditionalQuery),
             accountStorage: accountStorage
         )
         
         let account = try SolanaSDK.Account(
-            phrase: phrase.components(separatedBy: " "),
-            network: endpoint.network
+            phrase: test.seedPhrase.components(separatedBy: " "),
+            network: network
         )
         try accountStorage.save(account)
         
         orcaSwap = OrcaSwap(
-            apiClient: OrcaSwap.MockAPIClient(network: "mainnet"),
+            apiClient: OrcaSwap.MockAPIClient(network: orcaSwapNetwork),
             solanaClient: solanaSDK,
             accountProvider: solanaSDK,
             notificationHandler: solanaSDK
