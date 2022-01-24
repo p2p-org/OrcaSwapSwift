@@ -15,19 +15,16 @@ class OrcaSwapSwapTests: XCTestCase {
     // MARK: - Properties
     var solanaSDK: SolanaSDK!
     var orcaSwap: OrcaSwap!
-    var endpoint: SolanaSDK.APIEndPoint! {
-        .init(address: "https://p2p.rpcpool.com/", network: .mainnetBeta)
-    }
-    var phrase: String {
-        "miracle pizza supply useful steak border same again youth silver access hundred"
-    }
     
     var poolsRepository: [String: OrcaSwap.Pool]!
     
     // MARK: - Setup
     override func setUpWithError() throws {
         try super.setUpWithError()
-        
+        poolsRepository = try JSONDecoder().decode([String: OrcaSwap.Pool].self, from: OrcaSwap.getFileFrom(type: "pools", network: "mainnet"))
+    }
+    
+    func setUp(testName: String) throws {
         let accountStorage = InMemoryAccountStorage()
         
         solanaSDK = SolanaSDK(
@@ -49,8 +46,11 @@ class OrcaSwapSwapTests: XCTestCase {
         )
         
         _ = orcaSwap.load().toBlocking().materialize()
-        
-        poolsRepository = try JSONDecoder().decode([String: OrcaSwap.Pool].self, from: OrcaSwap.getFileFrom(type: "pools", network: "mainnet"))
+    }
+    
+    override func tearDownWithError() throws {
+        solanaSDK = nil
+        orcaSwap = nil
     }
     
     // MARK: - Helper
