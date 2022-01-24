@@ -21,16 +21,7 @@ class OrcaSwapDirectTests: OrcaSwapSwapTests {
     
     // MARK: - Direct SPL to SOL
     func testDirectSwapSPLToSOL() throws {
-//        let swapSimulation = try fillPoolsBalancesAndSwap(
-//            fromWalletPubkey: socnPubkey,
-//            toWalletPubkey: solPubkey,
-//            bestPoolsPair: [.init(name: "SOCN/SOL[stable][aquafarm]")],
-//            amount: 0.001,
-//            slippage: 0.05,
-//            isSimulation: true
-//        )
-//
-//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
+        try doTest(testJSONFile: "direct-swap-tests", testName: "splToSol", isSimulation: true)
     }
     
     // MARK: - Direct SPL to SPL
