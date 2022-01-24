@@ -124,7 +124,7 @@ extension OrcaSwap {
     static func getFileFrom(type: String, network: String) -> Data {
         let thisSourceFile = URL(fileURLWithPath: #file)
         let thisDirectory = thisSourceFile.deletingLastPathComponent()
-        let resourceURL = thisDirectory.appendingPathComponent("../../../Resources/Orca/\(type)/orca-\(type)-\(network).json")
+        let resourceURL = thisDirectory.appendingPathComponent("../Resources/\(type)/orca-\(type)-\(network).json")
         return try! Data(contentsOf: resourceURL)
     }
 }
