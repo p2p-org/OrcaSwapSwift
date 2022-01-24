@@ -63,6 +63,39 @@ class OrcaSwapSwapTests: XCTestCase {
         try doTest(testJSONFile: "transitive-swap-tests", testName: "splToCreatedSpl", isSimulation: true)
     }
     
+    func testTransitiveSwapSPLToUncreatedSPL() throws {
+//        let swapSimulation = try fillPoolsBalancesAndSwap(
+//            fromWalletPubkey: slimPubkey,
+//            toWalletPubkey: nil,
+//            bestPoolsPair: [
+//                .init(name: "SLIM/USDC[aquafarm]"),
+//                .init(name: "ABR/USDC[aquafarm]", reversed: true)
+//            ],
+//            amount: 0.01,
+//            slippage: 0.05,
+//            isSimulation: false
+//        )
+//
+//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
+    }
+    
+//    func testTransitiveSwapSPLToSOL() throws {
+//        let swapSimulation = try fillPoolsBalancesAndSwap(
+//            fromWalletPubkey: kuroPubkey,
+//            toWalletPubkey: solPubkey,
+//            bestPoolsPair: [
+//                .init(name: "KURO/USDC[aquafarm]"),
+//                .init(name: "SOL/USDC[aquafarm]", reversed: true)
+//            ],
+//            amount: 1,
+//            slippage: 0.05,
+//            isSimulation: false
+//        )
+//
+//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
+//    }
+    
+    
     // MARK: - Helpers
     func doTest(testJSONFile: String, testName: String, isSimulation: Bool) throws {
         let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!
