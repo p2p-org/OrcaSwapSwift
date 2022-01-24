@@ -50,6 +50,8 @@ orcaSwap.swap(
 There are 2 unit testings that are available: `OrcaSwapAPIClientTests` and `OrcaSwapPreparationTests`, the other tests are intergration tests
 
 ## Integration tests
+Integration tests now works only on mainnet, devnet and testnet would be added later
+
 ### Direct swap
 Create a json file `direct-swap-tests.json` inside `Resources` folder that contains following content:
 ```json
@@ -70,6 +72,23 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         ]
         "inputAmount": <Double, Input amount>,
         "slippage": <Double>
+    },
+    "solToNonCreatedSpl": {
+        "endpoint": <String, Solana api endpoint>,
+        "endpointAdditionalQuery": <String?>,
+        "seedPhrase": <String, Solana account seed phrase>,
+        "fromMint": "So11111111111111111111111111111111111111112",
+        "toMint": <String, Mint of token that you want to swap to>,
+        "sourceAddress": <String, Owner address>,
+        "destinationAddress": null,
+        "poolsPair": [
+            {
+                "name": "SOL/USDT[aquafarm]",
+                "reversed": false
+            }
+        ],
+        "inputAmount": 0.0001,
+        "slippage": 0.05
     }
 }
 ```
