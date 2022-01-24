@@ -255,3 +255,100 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
     }
 }
 ```
+### Examples
+Direct swap
+```json
+{
+    "solToCreatedSpl": {
+        "comment": "Swap from SOL to USDC",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "So11111111111111111111111111111111111111112",
+        "toMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "sourceAddress": "5bYReP8iw5UuLVS5wmnXfEfrYCKdiQ1FFAZQao8JqY7V",
+        "destinationAddress": "mCZrAFuPfBDPUW45n5BSkasRLpPZpmqpY7vs3XSYE7x",
+        "poolsPair": [
+            {
+                "name": "SOL/USDC",
+                "reversed": false
+            }
+        ],
+        "inputAmount": 0.0001,
+        "slippage": 0.05
+    },
+    "solToNonCreatedSpl": {
+        "comment": "Swap from SOL to USDT (non created)",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "So11111111111111111111111111111111111111112",
+        "toMint": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+        "sourceAddress": "5bYReP8iw5UuLVS5wmnXfEfrYCKdiQ1FFAZQao8JqY7V",
+        "destinationAddress": null,
+        "poolsPair": [
+            {
+                "name": "SOL/USDT[aquafarm]",
+                "reversed": false
+            }
+        ],
+        "inputAmount": 0.0001,
+        "slippage": 0.05
+    },
+    "splToSol": {
+        "comment": "Swap from USDC to SOL",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "toMint": "So11111111111111111111111111111111111111112",
+        "sourceAddress": "mCZrAFuPfBDPUW45n5BSkasRLpPZpmqpY7vs3XSYE7x",
+        "destinationAddress": "5bYReP8iw5UuLVS5wmnXfEfrYCKdiQ1FFAZQao8JqY7V",
+        "poolsPair": [
+            {
+                "name": "SOL/USDC",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 1,
+        "slippage": 0.05
+    },
+    "splToCreatedSpl": {
+        "comment": "Swap from USDC to KURO",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "toMint": "2Kc38rfQ49DFaKHQaWbijkE7fcymUMLY5guUiUsDmFfn",
+        "sourceAddress": "mCZrAFuPfBDPUW45n5BSkasRLpPZpmqpY7vs3XSYE7x",
+        "destinationAddress": "C5B13tQA4pq1zEVSVkWbWni51xdWB16C2QsC72URq9AJ",
+        "poolsPair": [
+            {
+                "name": "KURO/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 1,
+        "slippage": 0.05
+    },
+    "splToNonCreatedSpl": {
+        "comment": "Swap from USDC to MNGO (non created)",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "toMint": "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+        "sourceAddress": "mCZrAFuPfBDPUW45n5BSkasRLpPZpmqpY7vs3XSYE7x",
+        "destinationAddress": null,
+        "poolsPair": [
+            {
+                "name": "MNGO/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 1,
+        "slippage": 0.05
+    }
+}
+
+```
