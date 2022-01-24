@@ -190,6 +190,27 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
         "inputAmount": <Double, Input amount>,
         "slippage": <Double>
     },
+    "splToSol": {
+        "endpoint": <String, Solana api endpoint>,
+        "endpointAdditionalQuery": <String?>,
+        "seedPhrase": <String, Solana account seed phrase>,
+        "fromMint": <String, Mint of token that you want to swap from>,
+        "toMint": "So11111111111111111111111111111111111111112",
+        "sourceAddress": <String, Source token address>,
+        "destinationAddress": <String, Owner address>,
+        "poolsPair": [
+            {
+                name: <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+            },
+            {
+                name: <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+            }
+        ]
+        "inputAmount": <Double, Input amount>,
+        "slippage": <Double>
+    },
     "splToCreatedSpl": {
         "endpoint": <String, Solana api endpoint>,
         "endpointAdditionalQuery": <String?>,
