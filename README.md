@@ -68,7 +68,7 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
                 reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ]
-        "inputAmount": <UInt64, Input amount in lamports>,
+        "inputAmount": <Double, Input amount>,
         "slippage": <Double>
     }
 }

@@ -24,7 +24,7 @@ class OrcaSwapSwapTests: XCTestCase {
         poolsRepository = try JSONDecoder().decode([String: OrcaSwap.Pool].self, from: OrcaSwap.getFileFrom(type: "pools", network: "mainnet"))
     }
     
-    func setUp(testJSONFile: String, testName: String) throws {
+    func doTest(testJSONFile: String, testName: String, isSimulation: Bool) throws {
         let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!
         
         let accountStorage = InMemoryAccountStorage()
@@ -51,6 +51,17 @@ class OrcaSwapSwapTests: XCTestCase {
         )
         
         _ = orcaSwap.load().toBlocking().materialize()
+        
+        let swapOperation = try fillPoolsBalancesAndSwap(
+            fromWalletPubkey: test.sourceAddress,
+            toWalletPubkey: test.destinationAddress,
+            bestPoolsPair: test.poolsPair,
+            amount: test.inputAmount,
+            slippage: test.slippage,
+            isSimulation: isSimulation
+        )
+        
+        XCTAssertNoThrow(try swapOperation.toBlocking().first())
     }
     
     override func tearDownWithError() throws {
@@ -59,7 +70,7 @@ class OrcaSwapSwapTests: XCTestCase {
     }
     
     // MARK: - Helper
-    struct RawPool {
+    struct RawPool: Codable {
         init(name: String, reversed: Bool = false) {
             self.name = name
             self.reversed = reversed
