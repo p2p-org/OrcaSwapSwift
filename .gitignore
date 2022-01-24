@@ -6,3 +6,4 @@ xcuserdata/
 DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 direct-swap-tests.json
+transitive-swap-tests.json

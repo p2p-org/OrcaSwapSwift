@@ -10,38 +10,9 @@ import XCTest
 @testable import SolanaSwift
 
 class OrcaSwapTransitiveTests: OrcaSwapSwapTests {
-//    // MARK: - Transitive SOL to SPL
-//    func testTransitiveSwapSOLToCreatedSPL() throws {
-//        let swapSimulation = try fillPoolsBalancesAndSwap(
-//            fromWalletPubkey: solPubkey,
-//            toWalletPubkey: kuroPubkey,
-//            bestPoolsPair: [
-//                .init(name: "SOL/USDC[aquafarm]"),
-//                .init(name: "KURO/USDC[aquafarm]", reversed: true)
-//            ],
-//            amount: 0.001,
-//            slippage: 0.5,
-//            isSimulation: true
-//        )
-//        
-//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
-//    }
+    // MARK: - Transitive SOL to SPL
 //    
-//    func testTransitiveSwapSOLToUncreatedSPL() throws {
-//        let swapSimulation = try fillPoolsBalancesAndSwap(
-//            fromWalletPubkey: solPubkey,
-//            toWalletPubkey: nil,
-//            bestPoolsPair: [
-//                .init(name: "SOL/USDC[aquafarm]"),
-//                .init(name: "ABR/USDC[aquafarm]", reversed: true)
-//            ],
-//            amount: 0.001,
-//            slippage: 0.5,
-//            isSimulation: true
-//        )
-//
-//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
-//    }
+
 //    
 //    // MARK: - Transitive SPL to SOL
 //    func testTransitiveSwapSPLToSOL() throws {
