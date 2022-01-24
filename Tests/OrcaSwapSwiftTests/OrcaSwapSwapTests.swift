@@ -24,6 +24,36 @@ class OrcaSwapSwapTests: XCTestCase {
         poolsRepository = try JSONDecoder().decode([String: OrcaSwap.Pool].self, from: OrcaSwap.getFileFrom(type: "pools", network: "mainnet"))
     }
     
+    override func tearDownWithError() throws {
+        solanaSDK = nil
+        orcaSwap = nil
+    }
+    
+    // MARK: - Direct swap
+    func testDirectSwapSOLToCreatedSPL() throws {
+        try doTest(testJSONFile: "direct-swap-tests", testName: "solToCreatedSpl", isSimulation: true)
+    }
+    
+    func testDirectSwapSOLToUncreatedSPL() throws {
+        try doTest(testJSONFile: "direct-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
+    }
+    
+    func testDirectSwapSPLToSOL() throws {
+        try doTest(testJSONFile: "direct-swap-tests", testName: "splToSol", isSimulation: true)
+    }
+    
+    func testDirectSwapSPLToCreatedSPL() throws {
+        try doTest(testJSONFile: "direct-swap-tests", testName: "splToCreatedSpl", isSimulation: true)
+    }
+    
+    func testDirectSwapSPLToUncreatedSPL() throws {
+        try doTest(testJSONFile: "direct-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
+    }
+    
+    // MARK: - Transitive swap
+    
+    
+    // MARK: - Helpers
     func doTest(testJSONFile: String, testName: String, isSimulation: Bool) throws {
         let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!
         
@@ -62,11 +92,6 @@ class OrcaSwapSwapTests: XCTestCase {
         )
         
         XCTAssertNoThrow(try swapOperation.toBlocking().first())
-    }
-    
-    override func tearDownWithError() throws {
-        solanaSDK = nil
-        orcaSwap = nil
     }
     
     // MARK: - Helper

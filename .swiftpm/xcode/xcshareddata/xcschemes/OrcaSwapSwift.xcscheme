@@ -51,11 +51,6 @@
                BlueprintName = "OrcaSwapSwiftTests"
                ReferencedContainer = "container:">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "OrcaSwapSwapTests">
-               </Test>
-            </SkippedTests>
          </TestableReference>
       </Testables>
    </TestAction>
