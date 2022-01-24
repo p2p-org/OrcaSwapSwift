@@ -59,6 +59,10 @@ class OrcaSwapSwapTests: XCTestCase {
         try doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
     }
     
+    func testTransitiveSwapSPLToCreatedSPL() throws {
+        try doTest(testJSONFile: "transitive-swap-tests", testName: "splToCreatedSpl", isSimulation: true)
+    }
+    
     // MARK: - Helpers
     func doTest(testJSONFile: String, testName: String, isSimulation: Bool) throws {
         let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!

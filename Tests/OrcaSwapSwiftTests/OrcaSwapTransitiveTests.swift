@@ -29,22 +29,6 @@ class OrcaSwapTransitiveTests: OrcaSwapSwapTests {
 //    }
 //    
 //    // MARK: - Transitive SPL to SPL
-//    func testTransitiveSwapSPLToCreatedSPL() throws {
-//        let swapSimulation = try fillPoolsBalancesAndSwap(
-//            fromWalletPubkey: slimPubkey,
-//            toWalletPubkey: kuroPubkey,
-//            bestPoolsPair: [
-//                .init(name: "SLIM/USDC[aquafarm]"),
-//                .init(name: "KURO/USDC[aquafarm]", reversed: true)
-//            ],
-//            amount: 0.01,
-//            slippage: 0.5,
-//            isSimulation: true
-//        )
-//        
-//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
-//    }
-//    
 //    func testTransitiveSwapSPLToUncreatedSPL() throws {
 //        let swapSimulation = try fillPoolsBalancesAndSwap(
 //            fromWalletPubkey: slimPubkey,
