@@ -11,9 +11,6 @@ import XCTest
 
 class OrcaSwapTransitiveTests: OrcaSwapSwapTests {
     // MARK: - Transitive SOL to SPL
-//    
-
-//    
 //    // MARK: - Transitive SPL to SOL
 //    func testTransitiveSwapSPLToSOL() throws {
 //        let swapSimulation = try fillPoolsBalancesAndSwap(

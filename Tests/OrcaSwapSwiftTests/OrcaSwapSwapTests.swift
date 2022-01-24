@@ -56,19 +56,7 @@ class OrcaSwapSwapTests: XCTestCase {
     }
     
     func testTransitiveSwapSOLToUncreatedSPL() throws {
-//        let swapSimulation = try fillPoolsBalancesAndSwap(
-//            fromWalletPubkey: solPubkey,
-//            toWalletPubkey: nil,
-//            bestPoolsPair: [
-//                .init(name: "SOL/USDC[aquafarm]"),
-//                .init(name: "ABR/USDC[aquafarm]", reversed: true)
-//            ],
-//            amount: 0.001,
-//            slippage: 0.5,
-//            isSimulation: true
-//        )
-//
-//        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
+        try doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
     }
     
     // MARK: - Helpers
