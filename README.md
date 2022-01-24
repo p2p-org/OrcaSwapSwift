@@ -352,3 +352,119 @@ Direct swap
 }
 
 ```
+Transitive swap
+```json
+{
+    "solToCreatedSpl": {
+        "comment": "Swap from SOL to created KURO",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "So11111111111111111111111111111111111111112",
+        "toMint": "2Kc38rfQ49DFaKHQaWbijkE7fcymUMLY5guUiUsDmFfn",
+        "sourceAddress": "5bYReP8iw5UuLVS5wmnXfEfrYCKdiQ1FFAZQao8JqY7V",
+        "destinationAddress": "C5B13tQA4pq1zEVSVkWbWni51xdWB16C2QsC72URq9AJ",
+        "poolsPair": [
+            {
+                "name": "SOL/USDC[aquafarm]",
+                "reversed": false
+            },
+            {
+                "name": "KURO/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 0.0001,
+        "slippage": 0.05
+    },
+    "solToNonCreatedSpl": {
+        "comment": "Swap from SOL to NON-Created LIQ",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "So11111111111111111111111111111111111111112",
+        "toMint": "4wjPQJ6PrkC4dHhYghwJzGBVP78DkBzA2U3kHoFNBuhj",
+        "sourceAddress": "5bYReP8iw5UuLVS5wmnXfEfrYCKdiQ1FFAZQao8JqY7V",
+        "destinationAddress": null,
+        "poolsPair": [
+            {
+                "name": "SOL/USDC[aquafarm]",
+                "reversed": false
+            },
+            {
+                "name": "LIQ/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 0.0001,
+        "slippage": 0.05
+    },
+    "splToSol": {
+        "comment": "Swap from KURO to SOL",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "2Kc38rfQ49DFaKHQaWbijkE7fcymUMLY5guUiUsDmFfn",
+        "toMint": "So11111111111111111111111111111111111111112",
+        "sourceAddress": "C5B13tQA4pq1zEVSVkWbWni51xdWB16C2QsC72URq9AJ",
+        "destinationAddress": "5bYReP8iw5UuLVS5wmnXfEfrYCKdiQ1FFAZQao8JqY7V",
+        "poolsPair": [
+            {
+                "name": "KURO/USDC[aquafarm]",
+                "reversed": false
+            },
+            {
+                "name": "SOL/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 100,
+        "slippage": 0.05
+    },
+    "splToCreatedSpl": {
+        "comment": "Swap from KURO to created SLIM",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "2Kc38rfQ49DFaKHQaWbijkE7fcymUMLY5guUiUsDmFfn",
+        "toMint": "xxxxa1sKNGwFtw2kFn8XauW9xq8hBZ5kVtcSesTT9fW",
+        "sourceAddress": "C5B13tQA4pq1zEVSVkWbWni51xdWB16C2QsC72URq9AJ",
+        "destinationAddress": "FH58UXMZnj9HTAWusB9zmYCtqUCCLP351ao4S687pxD6",
+        "poolsPair": [
+            {
+                "name": "KURO/USDC[aquafarm]",
+                "reversed": false
+            },
+            {
+                "name": "SLIM/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 100,
+        "slippage": 0.05
+    },
+    "splToNonCreatedSpl": {
+        "comment": "Swap from KURO to Non-Created SNY",
+        "endpoint": "https://api.mainnet-beta.solana.com/",
+        "endpointAdditionalQuery": null,
+        "seedPhrase": "<secret>",
+        "fromMint": "2Kc38rfQ49DFaKHQaWbijkE7fcymUMLY5guUiUsDmFfn",
+        "toMint": "4dmKkXNHdgYsXqBHCuMikNQWwVomZURhYvkkX5c4pQ7y",
+        "sourceAddress": "C5B13tQA4pq1zEVSVkWbWni51xdWB16C2QsC72URq9AJ",
+        "destinationAddress": null,
+        "poolsPair": [
+            {
+                "name": "KURO/USDC[aquafarm]",
+                "reversed": false
+            },
+            {
+                "name": "SNY/USDC[aquafarm]",
+                "reversed": true
+            }
+        ],
+        "inputAmount": 100,
+        "slippage": 0.05
+    }
+}
+
+```
