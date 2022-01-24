@@ -106,6 +106,23 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         ],
         "inputAmount": <Double, Input amount>,
         "slippage": <Double>
+    },
+    "splToCreatedSpl": {
+        "endpoint": <String, Solana api endpoint>,
+        "endpointAdditionalQuery": <String?>,
+        "seedPhrase": <String, Solana account seed phrase>,
+        "fromMint": <String, Mint of token that you want to swap from>,
+        "toMint": <String, Mint of token that you want to swap to>,
+        "sourceAddress": <String, Source token address>,
+        "destinationAddress": <String, Destination token address>,
+        "poolsPair": [
+            {
+                name: <String, Name of pools, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true>
+            }
+        ],
+        "inputAmount": 1,
+        "slippage": 0.05
     }
 }
 ```
