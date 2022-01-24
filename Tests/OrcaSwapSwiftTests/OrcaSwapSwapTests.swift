@@ -34,7 +34,7 @@ class OrcaSwapSwapTests: XCTestCase {
         try doTest(testJSONFile: "direct-swap-tests", testName: "solToCreatedSpl", isSimulation: true)
     }
     
-    func testDirectSwapSOLToUncreatedSPL() throws {
+    func testDirectSwapSOLToNonCreatedSPL() throws {
         try doTest(testJSONFile: "direct-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
     }
     
@@ -46,7 +46,7 @@ class OrcaSwapSwapTests: XCTestCase {
         try doTest(testJSONFile: "direct-swap-tests", testName: "splToCreatedSpl", isSimulation: true)
     }
     
-    func testDirectSwapSPLToUncreatedSPL() throws {
+    func testDirectSwapSPLToNonCreatedSPL() throws {
         try doTest(testJSONFile: "direct-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
     }
     
@@ -55,18 +55,10 @@ class OrcaSwapSwapTests: XCTestCase {
         try doTest(testJSONFile: "transitive-swap-tests", testName: "solToCreatedSpl", isSimulation: true)
     }
     
-    func testTransitiveSwapSOLToUncreatedSPL() throws {
+    func testTransitiveSwapSOLToNonCreatedSPL() throws {
         try doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
     }
-    
-    func testTransitiveSwapSPLToCreatedSPL() throws {
-        try doTest(testJSONFile: "transitive-swap-tests", testName: "splToCreatedSpl", isSimulation: true)
-    }
-    
-    func testTransitiveSwapSPLToUncreatedSPL() throws {
-        try doTest(testJSONFile: "transitive-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
-    }
-    
+
 //    func testTransitiveSwapSPLToSOL() throws {
 //        let swapSimulation = try fillPoolsBalancesAndSwap(
 //            fromWalletPubkey: kuroPubkey,
@@ -82,6 +74,14 @@ class OrcaSwapSwapTests: XCTestCase {
 //
 //        XCTAssertNoThrow(try swapSimulation.toBlocking().first())
 //    }
+    
+    func testTransitiveSwapSPLToCreatedSPL() throws {
+        try doTest(testJSONFile: "transitive-swap-tests", testName: "splToCreatedSpl", isSimulation: true)
+    }
+    
+    func testTransitiveSwapSPLToNonCreatedSPL() throws {
+        try doTest(testJSONFile: "transitive-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
+    }
     
     
     // MARK: - Helpers
