@@ -433,7 +433,9 @@ public class OrcaSwap: OrcaSwapType {
                 guard let self = self else {throw OrcaSwapError.unknown}
                 
                 var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
+                var additionalSigners = [Account]()
                 if let wsolAccountInstructions = wsolAccountInstructions {
+                    additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
                     instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
                     instructions.append(contentsOf: wsolAccountInstructions.cleanupInstructions)
                 }
@@ -441,7 +443,7 @@ public class OrcaSwap: OrcaSwapType {
                 return self.solanaClient.serializeAndSend(
                     instructions: instructions,
                     recentBlockhash: nil,
-                    signers: [owner, userTransferAuthority] + accountInstructions.signers,
+                    signers: [owner] + additionalSigners + [userTransferAuthority] + accountInstructions.signers,
                     isSimulation: isSimulation
                 )
                 .map {.init(transactionId: $0, newWalletPubkey: isDestinationNew ? accountInstructions.account.base58EncodedString: nil)}
@@ -469,13 +471,25 @@ public class OrcaSwap: OrcaSwapType {
               let destinationMint = try? info?.tokens[pool1.tokenBName]?.mint.toPublicKey()
         else {return .error(OrcaSwapError.unauthorized)}
         
-        return Single.zip(
-            solanaClient.prepareForCreatingAssociatedTokenAccount(
+        let requestCreatingIntermediaryToken: Single<AccountInstructions>
+        
+        if intermediaryTokenMint == .wrappedSOLMint {
+            requestCreatingIntermediaryToken = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                from: owner.publicKey,
+                amount: 0,
+                payer: feeRelayerFeePayer ?? owner.publicKey
+            )
+        } else {
+            requestCreatingIntermediaryToken = solanaClient.prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: intermediaryTokenMint,
                 feePayer: feeRelayerFeePayer ?? owner.publicKey,
                 closeAfterward: true
-            ),
+            )
+        }
+        
+        return Single.zip(
+            requestCreatingIntermediaryToken,
             solanaClient.prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: destinationMint,
@@ -489,6 +503,7 @@ public class OrcaSwap: OrcaSwapType {
                 var wsolAccountInstructions: AccountInstructions?
                 if intermediaryTokenMint == .wrappedSOLMint {
                     wsolAccountInstructions = intAccountInstructions
+                    wsolAccountInstructions?.cleanupInstructions = []
                 } else {
                     instructions.append(contentsOf: intAccountInstructions.instructions)
                 }
