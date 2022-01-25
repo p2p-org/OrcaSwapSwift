@@ -14,6 +14,7 @@ TODO: Add long description of the pod here.
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
   s.ios.deployment_target = '12.0'
+  s.swift_version    = '5.5'
 
   s.source_files = 'Sources/OrcaSwapSwift/**/*'
   # s.resources = 'Sources/OrcaSwapSwift/Resources/*'
