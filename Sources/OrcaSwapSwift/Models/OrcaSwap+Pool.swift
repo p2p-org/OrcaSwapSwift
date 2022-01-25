@@ -37,7 +37,7 @@ public extension OrcaSwap {
         let curveType: String
         let amp: UInt64?
         let programVersion: UInt64?
-        let deprecated: Bool?
+        public let deprecated: Bool?
         
         // balance (lazy load)
         var tokenABalance: SolanaSDK.TokenAccountBalance?
