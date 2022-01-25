@@ -58,7 +58,7 @@ public extension OrcaSwap {
         }
         
         public var swapProgramId: SolanaSDK.PublicKey {
-            .orcaSwapId(version: deprecated == true ? 1: 2)
+            .orcaSwapId(version: programVersion == 2 ? 2: 1)
         }
     }
 }
