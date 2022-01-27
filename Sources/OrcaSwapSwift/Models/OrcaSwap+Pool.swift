@@ -57,6 +57,10 @@ public extension OrcaSwap {
             tokenBBalance?.decimals
         }
         
+        public func getTokenADecimals() -> SolanaSDK.Decimals? {
+            tokenABalance?.decimals
+        }
+        
         public var swapProgramId: SolanaSDK.PublicKey {
             .orcaSwapId(version: programVersion == 2 ? 2: 1)
         }
