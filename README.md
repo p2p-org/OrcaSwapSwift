@@ -66,10 +66,10 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         "destinationAddress": <String, Destination token address>,
         "poolsPair": [
             {
-                name: <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
-        ]
+        ],
         "inputAmount": <Double, Input amount>,
         "slippage": <Double>
     },
@@ -83,8 +83,8 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         "destinationAddress": null,
         "poolsPair": [
             {
-                name: <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ],
         "inputAmount": <Double, Input amount>,
@@ -100,8 +100,8 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         "destinationAddress": <String, Owner address>,
         "poolsPair": [
             {
-                name: <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ],
         "inputAmount": <Double, Input amount>,
@@ -117,8 +117,8 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         "destinationAddress": <String, Destination token address>,
         "poolsPair": [
             {
-                name: <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true>
+                "name": <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true>
             }
         ],
         "inputAmount": 1,
@@ -134,8 +134,8 @@ Create a json file `direct-swap-tests.json` inside `Resources` folder that conta
         "destinationAddress": null,
         "poolsPair": [
             {
-                name: <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true>
+                "name": <String, Name of pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true>
             }
         ],
         "inputAmount": 1,
@@ -158,12 +158,12 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
         "destinationAddress": <String, Destination token address>,
         "poolsPair": [
             {
-                name: <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             },
             {
-                name: <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ]
         "inputAmount": <Double, Input amount>,
@@ -179,12 +179,12 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
         "destinationAddress": null,
         "poolsPair": [
             {
-                name: <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             },
             {
-                name: <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ]
         "inputAmount": <Double, Input amount>,
@@ -200,12 +200,12 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
         "destinationAddress": <String, Owner address>,
         "poolsPair": [
             {
-                name: <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             },
             {
-                name: <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ]
         "inputAmount": <Double, Input amount>,
@@ -221,12 +221,12 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
         "destinationAddress": <String, Destination token address>,
         "poolsPair": [
             {
-                name: <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             },
             {
-                name: <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ],
         "inputAmount": <Double, Input amount>,
@@ -242,12 +242,12 @@ Create a json file `transitive-swap-tests.json` inside `Resources` folder that c
         "destinationAddress": null,
         "poolsPair": [
             {
-                name: <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of first pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             },
             {
-                name: <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
-                reversed: <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
+                "name": <String, Name of second pool, for example: SOCN/SOL[stable][aquafarm], see Resources/pools/orca-pools-mainnet.json>,
+                "reversed": <Bool, For example: if pool name equals to SOCN/SOL, and the swap is SOL to SOCN, then reversed == true> 
             }
         ],
         "inputAmount": <Double, Input amount>,
