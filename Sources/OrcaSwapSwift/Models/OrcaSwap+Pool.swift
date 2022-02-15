@@ -208,8 +208,8 @@ extension OrcaSwap.Pool {
         amount: OrcaSwap.Lamports,
         slippage: Double,
         feePayer: OrcaSwap.PublicKey?,
-        shouldCreateAssociatedTokenAccount: Bool
-    ) -> Single<OrcaSwap.AccountInstructions> {
+        minRenExemption: OrcaSwap.Lamports
+    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
         guard let fromMint = try? tokens[tokenAName]?.mint.toPublicKey(),
               let toMint = try? tokens[tokenBName]?.mint.toPublicKey(),
               let fromTokenPubkey = try? fromTokenPubkey.toPublicKey()
@@ -245,8 +245,8 @@ extension OrcaSwap.Pool {
                         cleanupInstructions: [
                             OrcaSwap.TokenProgram.closeAccountInstruction(
                                 account: toTokenPubkey,
-                                destination: feePayer ?? owner.publicKey, // FIXME
-                                owner: feePayer ?? owner.publicKey // FIXME
+                                destination: owner.publicKey,
+                                owner: owner.publicKey
                             )
                         ]
                     )
@@ -286,14 +286,21 @@ extension OrcaSwap.Pool {
                 // form instructions
                 var instructions = [OrcaSwap.TransactionInstruction]()
                 var cleanupInstructions = [OrcaSwap.TransactionInstruction]()
+                var accountCreationFee: UInt64 = 0
                 
                 // source
                 instructions.append(contentsOf: sourceAccountInstructions.instructions)
                 cleanupInstructions.append(contentsOf: sourceAccountInstructions.cleanupInstructions)
+                if !sourceAccountInstructions.instructions.isEmpty {
+                    accountCreationFee += minRenExemption
+                }
                 
                 // destination
                 instructions.append(contentsOf: destinationAccountInstructions.instructions)
                 cleanupInstructions.append(contentsOf: destinationAccountInstructions.cleanupInstructions)
+                if !destinationAccountInstructions.instructions.isEmpty {
+                    accountCreationFee += minRenExemption
+                }
                 
                 // userTransferAuthorityPubkey
                 let approveTransaction = OrcaSwap.TokenProgram.approveInstruction(
@@ -324,12 +331,12 @@ extension OrcaSwap.Pool {
                 signers.append(contentsOf: destinationAccountInstructions.signers)
                 signers.append(userTransferAuthority)
                 
-                return .init(
+                return (.init(
                     account: destinationAccountInstructions.account,
                     instructions: instructions,
                     cleanupInstructions: cleanupInstructions,
                     signers: signers
-                )
+                ), minRenExemption)
             }
     }
     

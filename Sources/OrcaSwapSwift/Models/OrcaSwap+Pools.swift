@@ -124,8 +124,8 @@ public extension OrcaSwap.PoolsPair {
         amount: OrcaSwap.Lamports,
         slippage: Double,
         feePayer: OrcaSwap.PublicKey?,
-        shouldCreateAssociatedTokenAccount: Bool
-    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Account)> {
+        minRenExemption: OrcaSwap.Lamports
+    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Account, OrcaSwap.Lamports /*account creation fee*/)> {
         guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
         
         if count == 1 {
@@ -143,9 +143,9 @@ public extension OrcaSwap.PoolsPair {
                             amount: amount,
                             slippage: slippage,
                             feePayer: feePayer,
-                            shouldCreateAssociatedTokenAccount: true
+                            minRenExemption: minRenExemption
                         )
-                        .map {($0, userTransferAuthority)}
+                        .map {($0.0, userTransferAuthority, $0.1)}
                 }
         } else {
             // transitive swap
@@ -166,9 +166,9 @@ public extension OrcaSwap.PoolsPair {
                             amount: amount,
                             slippage: slippage,
                             feePayer: feePayer,
-                            shouldCreateAssociatedTokenAccount: false
+                            minRenExemption: minRenExemption
                         )
-                        .flatMap { pool0AccountInstructions in
+                        .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> in
                             guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
                             else {throw OrcaSwapError.unknown}
                             
@@ -182,18 +182,18 @@ public extension OrcaSwap.PoolsPair {
                                 amount: amount,
                                 slippage: slippage,
                                 feePayer: feePayer,
-                                shouldCreateAssociatedTokenAccount: false
+                                minRenExemption: minRenExemption
                             )
-                                .map {pool1AccountInstructions in
-                                    .init(
+                                .map {pool1AccountInstructions, pool1AccountCreationFee in
+                                    (.init(
                                         account: pool1AccountInstructions.account,
                                         instructions: pool0AccountInstructions.instructions + pool1AccountInstructions.instructions,
                                         cleanupInstructions: pool0AccountInstructions.cleanupInstructions + pool1AccountInstructions.cleanupInstructions,
                                         signers: pool0AccountInstructions.signers + pool1AccountInstructions.signers
-                                    )
+                                    ), pool0AccountCreationFee + pool1AccountCreationFee)
                                 }
                         }
-                        .map {($0, userTransferAuthority)}
+                        .map {($0.0, userTransferAuthority, $0.1)}
                 }
         }
     }
