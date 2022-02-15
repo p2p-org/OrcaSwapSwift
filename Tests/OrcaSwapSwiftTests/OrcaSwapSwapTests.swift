@@ -101,16 +101,41 @@ class OrcaSwapSwapTests: XCTestCase {
         
         _ = orcaSwap.load().toBlocking().materialize()
         
-        let swapOperation = try fillPoolsBalancesAndSwap(
+        let preparedTransactions = try fillPoolsBalancesAndSwap(
             fromWalletPubkey: test.sourceAddress,
             toWalletPubkey: test.destinationAddress,
             bestPoolsPair: test.poolsPair,
             amount: test.inputAmount,
             slippage: test.slippage,
             isSimulation: isSimulation
-        )
+        ).toBlocking().first()!
         
-        XCTAssertNoThrow(try swapOperation.toBlocking().first())
+        let request: Single<String>
+        if preparedTransactions.count == 1 {
+            request = solanaSDK.serializeAndSend(
+                preparedTransaction: preparedTransactions[0],
+                isSimulation: true
+            )
+        } else if preparedTransactions.count == 2 {
+            request = solanaSDK.serializeAndSend(
+                preparedTransaction: preparedTransactions[0],
+                isSimulation: false
+            )
+                .flatMapCompletable { [weak self] txid in
+                    guard let self = self else {throw OrcaSwapError.unknown}
+                    return self.orcaSwap.notificationHandler.waitForConfirmation(signature: txid)
+                }
+                .andThen(
+                    solanaSDK.serializeAndSend(
+                        preparedTransaction: preparedTransactions[1],
+                        isSimulation: true
+                    )
+                )
+        } else {
+            fatalError()
+        }
+        
+        XCTAssertNoThrow(try request.toBlocking().first())
     }
     
     // MARK: - Helper
