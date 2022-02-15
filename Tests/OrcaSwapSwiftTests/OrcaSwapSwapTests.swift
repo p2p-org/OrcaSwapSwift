@@ -56,7 +56,9 @@ class OrcaSwapSwapTests: XCTestCase {
     }
     
     func testTransitiveSwapSOLToNonCreatedSPL() throws {
-        try doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
+        let test = try doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
+        
+        try closeAssociatedToken(mint: test.toMint)
     }
 
     func testTransitiveSwapSPLToSOL() throws {
@@ -68,12 +70,15 @@ class OrcaSwapSwapTests: XCTestCase {
     }
     
     func testTransitiveSwapSPLToNonCreatedSPL() throws {
-        try doTest(testJSONFile: "transitive-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
+        let test = try doTest(testJSONFile: "transitive-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
+        
+        try closeAssociatedToken(mint: test.toMint)
     }
     
     
     // MARK: - Helpers
-    func doTest(testJSONFile: String, testName: String, isSimulation: Bool) throws {
+    @discardableResult
+    func doTest(testJSONFile: String, testName: String, isSimulation: Bool) throws -> SwapTest {
         let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!
         
         let accountStorage = InMemoryAccountStorage()
@@ -136,6 +141,27 @@ class OrcaSwapSwapTests: XCTestCase {
         }
         
         XCTAssertNoThrow(try request.toBlocking().first())
+        return test
+    }
+    
+    func closeAssociatedToken(mint: String) throws {
+        let associatedTokenAddress = try SolanaSDK.PublicKey.associatedTokenAddress(
+            walletAddress: solanaSDK.accountStorage.account!.publicKey,
+            tokenMintAddress: try SolanaSDK.PublicKey(string: mint)
+        )
+        
+        let _ = try solanaSDK.closeTokenAccount(
+            tokenPubkey: associatedTokenAddress.base58EncodedString
+        )
+            .retry { errors in
+                errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
+                    if error.readableDescription == "InvalidAccountData" {
+                        return .timer(.seconds(1), scheduler: MainScheduler.instance)
+                    }
+                    return .error(error)
+                }
+            }
+            .toBlocking().first()
     }
     
     // MARK: - Helper
