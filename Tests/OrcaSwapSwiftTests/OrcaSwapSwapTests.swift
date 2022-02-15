@@ -106,7 +106,7 @@ class OrcaSwapSwapTests: XCTestCase {
         
         _ = orcaSwap.load().toBlocking().materialize()
         
-        let preparedTransactions = try fillPoolsBalancesAndSwap(
+        let swapTransactions = try fillPoolsBalancesAndSwap(
             fromWalletPubkey: test.sourceAddress,
             toWalletPubkey: test.destinationAddress,
             bestPoolsPair: test.poolsPair,
@@ -116,25 +116,33 @@ class OrcaSwapSwapTests: XCTestCase {
         ).toBlocking().first()!
         
         let request: Single<String>
-        if preparedTransactions.count == 1 {
-            request = solanaSDK.serializeAndSend(
-                preparedTransaction: preparedTransactions[0],
-                isSimulation: true
-            )
-        } else if preparedTransactions.count == 2 {
-            request = solanaSDK.serializeAndSend(
-                preparedTransaction: preparedTransactions[0],
-                isSimulation: false
-            )
+        if swapTransactions.count == 1 {
+            request = try prepareAndSend(swapTransactions[0], isSimulation: true)
+        } else if swapTransactions.count == 2 {
+            request = try prepareAndSend(swapTransactions[0], isSimulation: false)
                 .flatMapCompletable { [weak self] txid in
                     guard let self = self else {throw OrcaSwapError.unknown}
                     return self.orcaSwap.notificationHandler.waitForConfirmation(signature: txid)
                 }
                 .andThen(
-                    solanaSDK.serializeAndSend(
-                        preparedTransaction: preparedTransactions[1],
-                        isSimulation: true
-                    )
+                    try prepareAndSend(swapTransactions[1], isSimulation: true)
+                        .retry { errors in
+                            errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
+                                if let error = error as? SolanaSDK.Error {
+                                    switch error {
+                                    case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
+                                        return .timer(.seconds(1), scheduler: MainScheduler.instance)
+                                    case .transactionError(_, logs: let logs) where logs.contains("Program log: Error: InvalidAccountData"):
+                                        return .timer(.seconds(1), scheduler: MainScheduler.instance)
+                                    default:
+                                        break
+                                    }
+                                }
+                                
+                                return .error(error)
+                            }
+                        }
+                        .timeout(.seconds(60), scheduler: MainScheduler.instance)
                 )
         } else {
             fatalError()
@@ -155,12 +163,17 @@ class OrcaSwapSwapTests: XCTestCase {
         )
             .retry { errors in
                 errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
-                    if error.readableDescription == "InvalidAccountData" {
+                    let error = error as! SolanaSDK.Error
+                    switch error {
+                    case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
                         return .timer(.seconds(1), scheduler: MainScheduler.instance)
+                    default:
+                        break
                     }
                     return .error(error)
                 }
             }
+            .timeout(.seconds(60), scheduler: MainScheduler.instance)
             .toBlocking().first()
     }
     
@@ -182,7 +195,7 @@ class OrcaSwapSwapTests: XCTestCase {
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) throws -> Single<[SolanaSDK.PreparedTransaction]> {
+    ) throws -> Single<[OrcaSwap.PreparedSwapTransaction]> {
         let bestPoolsPair = try Single.zip(
             bestPoolsPair.map { rawPool -> Single<OrcaSwap.Pool> in
                 var pool = poolsRepository[rawPool.name]!
@@ -203,5 +216,22 @@ class OrcaSwapSwapTests: XCTestCase {
         )
         
         return swapSimulation
+    }
+    
+    func prepareAndSend(
+        _ swapTransaction: OrcaSwap.PreparedSwapTransaction,
+        isSimulation: Bool
+    ) throws -> Single<String> {
+        // prepare
+        let preparedTransaction = try solanaSDK.prepareTransaction(
+            instructions: swapTransaction.instructions,
+            signers: swapTransaction.signers,
+            feePayer: solanaSDK.accountStorage.account!.publicKey,
+            accountsCreationFee: swapTransaction.accountCreationFee,
+            recentBlockhash: nil,
+            lamportsPerSignature: nil
+        ).toBlocking().first()!
+        
+        return solanaSDK.serializeAndSend(preparedTransaction: preparedTransaction, isSimulation: isSimulation)
     }
 }
