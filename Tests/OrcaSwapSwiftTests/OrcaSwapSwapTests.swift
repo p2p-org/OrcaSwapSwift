@@ -147,6 +147,7 @@ class OrcaSwapSwapTests: XCTestCase {
             toWalletPubkey: toWalletPubkey,
             bestPoolsPair: bestPoolsPair,
             amount: amount,
+            feePayer: nil,
             slippage: 0.5,
             isSimulation: isSimulation
         )

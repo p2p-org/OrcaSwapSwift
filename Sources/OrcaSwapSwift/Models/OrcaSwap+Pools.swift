@@ -123,7 +123,7 @@ public extension OrcaSwap.PoolsPair {
         toTokenPubkey: String?,
         amount: OrcaSwap.Lamports,
         slippage: Double,
-        feeRelayerFeePayer: OrcaSwap.PublicKey?,
+        feePayer: OrcaSwap.PublicKey?,
         shouldCreateAssociatedTokenAccount: Bool
     ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Account)> {
         guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
@@ -142,7 +142,7 @@ public extension OrcaSwap.PoolsPair {
                             toTokenPubkey: toTokenPubkey,
                             amount: amount,
                             slippage: slippage,
-                            feeRelayerFeePayer: nil,
+                            feePayer: feePayer,
                             shouldCreateAssociatedTokenAccount: true
                         )
                         .map {($0, userTransferAuthority)}
@@ -165,7 +165,7 @@ public extension OrcaSwap.PoolsPair {
                             toTokenPubkey: intermediaryTokenAddress,
                             amount: amount,
                             slippage: slippage,
-                            feeRelayerFeePayer: nil,
+                            feePayer: feePayer,
                             shouldCreateAssociatedTokenAccount: false
                         )
                         .flatMap { pool0AccountInstructions in
@@ -181,7 +181,7 @@ public extension OrcaSwap.PoolsPair {
                                 toTokenPubkey: toTokenPubkey,
                                 amount: amount,
                                 slippage: slippage,
-                                feeRelayerFeePayer: nil,
+                                feePayer: feePayer,
                                 shouldCreateAssociatedTokenAccount: false
                             )
                                 .map {pool1AccountInstructions in

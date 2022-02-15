@@ -32,6 +32,7 @@ public protocol OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: OrcaSwap.PoolsPair,
         amount: Double,
+        feePayer: OrcaSwap.PublicKey?,
         slippage: Double,
         isSimulation: Bool
     ) -> Single<OrcaSwap.SwapResponse>
@@ -277,6 +278,7 @@ public class OrcaSwap: OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: PoolsPair,
         amount: Double,
+        feePayer: PublicKey?,
         slippage: Double,
         isSimulation: Bool = false
     ) -> Single<SwapResponse> {
@@ -293,6 +295,7 @@ public class OrcaSwap: OrcaSwapType {
                 fromTokenPubkey: fromWalletPubkey,
                 toTokenPubkey: toWalletPubkey,
                 amount: amount,
+                feePayer: feePayer,
                 slippage: slippage,
                 isSimulation: isSimulation
             )
@@ -370,6 +373,7 @@ public class OrcaSwap: OrcaSwapType {
         fromTokenPubkey: String,
         toTokenPubkey: String?,
         amount: UInt64,
+        feePayer: PublicKey?,
         slippage: Double,
         isSimulation: Bool
     ) -> Single<SwapResponse> {
@@ -385,7 +389,7 @@ public class OrcaSwap: OrcaSwapType {
                 toTokenPubkey: toTokenPubkey,
                 amount: amount,
                 slippage: slippage,
-                feeRelayerFeePayer: nil,
+                feePayer: feePayer,
                 shouldCreateAssociatedTokenAccount: true
             )
             .flatMap {[weak self] accountInstructions, userTransferAuthority in
@@ -426,7 +430,7 @@ public class OrcaSwap: OrcaSwapType {
                 toTokenPubkey: destinationTokenAddress,
                 amount: amount,
                 slippage: slippage,
-                feeRelayerFeePayer: nil,
+                feePayer: nil,
                 shouldCreateAssociatedTokenAccount: false
             )
             .flatMap {[weak self] accountInstructions, userTransferAuthority in
