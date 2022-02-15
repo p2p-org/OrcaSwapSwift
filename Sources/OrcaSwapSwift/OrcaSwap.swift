@@ -7,6 +7,7 @@
 
 import Foundation
 import RxSwift
+import SolanaSwift
 
 private var cache: OrcaSwap.SwapInfo?
 
@@ -33,9 +34,8 @@ public protocol OrcaSwapType {
         bestPoolsPair: OrcaSwap.PoolsPair,
         amount: Double,
         feePayer: OrcaSwap.PublicKey?,
-        slippage: Double,
-        isSimulation: Bool
-    ) -> Single<OrcaSwap.SwapResponse>
+        slippage: Double
+    ) -> Single<[SolanaSDK.PreparedTransaction]>
 }
 
 public class OrcaSwap: OrcaSwapType {
@@ -279,9 +279,8 @@ public class OrcaSwap: OrcaSwapType {
         bestPoolsPair: PoolsPair,
         amount: Double,
         feePayer: PublicKey?,
-        slippage: Double,
-        isSimulation: Bool = false
-    ) -> Single<SwapResponse> {
+        slippage: Double
+    ) -> Single<[SolanaSDK.PreparedTransaction]> {
         guard bestPoolsPair.count > 0 else {return .error(OrcaSwapError.swapInfoMissing)}
         guard let fromDecimals = bestPoolsPair[0].tokenABalance?.decimals else {
             return .error(OrcaSwapError.invalidPool)
@@ -290,7 +289,6 @@ public class OrcaSwap: OrcaSwapType {
         let amount = amount.toLamport(decimals: fromDecimals)
         
         let minRenExemptionRequest = solanaClient.getMinimumBalanceForRentExemption(span: 165)
-        
         
         if bestPoolsPair.count == 1 {
             return minRenExemptionRequest.flatMap { [weak self] minRenExemption in
@@ -302,9 +300,9 @@ public class OrcaSwap: OrcaSwapType {
                     amount: amount,
                     feePayer: feePayer,
                     slippage: slippage,
-                    isSimulation: isSimulation,
                     minRenExemption: minRenExemption
                 )
+                    .map {[$0]}
             }
         } else {
             let pool0 = bestPoolsPair[0]
@@ -315,17 +313,17 @@ public class OrcaSwap: OrcaSwapType {
             // SECOND TRANSACTION TAKE THE RESULT OF FIRST TRANSACTION (ADDRESSES) TO REDUCE ITS SIZE. **IF INTERMEDIATE TOKEN OR DESTINATION TOKEN IS WSOL, IT SHOULD BE INCLUDED IN THIS TRANSACTION**
             
             // First transaction
-            return minRenExemptionRequest.flatMap { [weak self] minRenExemption -> Single<(PublicKey, PublicKey, AccountInstructions?, Lamports, Lamports)> in
+            return minRenExemptionRequest.flatMap { [weak self] minRenExemption -> Single<(PublicKey, PublicKey, AccountInstructions?, SolanaSDK.PreparedTransaction?, Lamports)> in
                 guard let self = self else {throw OrcaSwapError.unknown}
                 return self.createIntermediaryTokenAndDestinationTokenAddressIfNeeded(
                     pool0: pool0,
                     pool1: pool1,
                     toWalletPubkey: toWalletPubkey,
-                    feeRelayerFeePayer: feePayer,
+                    feePayer: feePayer,
                     minRenExemption: minRenExemption
                 ).map {($0.0, $0.1, $0.2, $0.3, minRenExemption)}
             }
-                .flatMap {[weak self] intermediaryTokenAddress, destinationTokenAddress, wsolAccountInstructions, accountCreationFee, minRenExemption in
+                .flatMap {[weak self] intermediaryTokenAddress, destinationTokenAddress, wsolAccountInstructions, preparedTransaction, minRenExemption in
                     guard let self = self else {throw OrcaSwapError.unknown}
                     // Second transaction
                     return self.transitiveSwap(
@@ -334,13 +332,21 @@ public class OrcaSwap: OrcaSwapType {
                         fromTokenPubkey: fromWalletPubkey,
                         intermediaryTokenAddress: intermediaryTokenAddress.base58EncodedString,
                         destinationTokenAddress: destinationTokenAddress.base58EncodedString,
+                        feePayer: feePayer,
                         wsolAccountInstructions: wsolAccountInstructions,
                         isDestinationNew: toWalletPubkey == nil,
                         amount: amount,
                         slippage: slippage,
-                        isSimulation: isSimulation,
                         minRenExemption: minRenExemption
                     )
+                        .map {
+                            var transactions = [SolanaSDK.PreparedTransaction]()
+                            if let preparedTransaction = preparedTransaction {
+                                transactions.append(preparedTransaction)
+                            }
+                            transactions.append($0)
+                            return transactions
+                        }
                 }
         }
     }
@@ -387,9 +393,8 @@ public class OrcaSwap: OrcaSwapType {
         amount: UInt64,
         feePayer: PublicKey?,
         slippage: Double,
-        isSimulation: Bool,
         minRenExemption: Lamports
-    ) -> Single<SwapResponse> {
+    ) -> Single<SolanaSDK.PreparedTransaction> {
         guard let owner = accountProvider.getAccount() else {return .error(OrcaSwapError.unauthorized)}
         guard let info = info else {return .error(OrcaSwapError.swapInfoMissing)}
         
@@ -408,13 +413,17 @@ public class OrcaSwap: OrcaSwapType {
             .flatMap {[weak self] accountInstructions, userTransferAuthority, accountCreationFee in
                 guard let self = self else {throw OrcaSwapError.unknown}
                 
-                return self.solanaClient.serializeAndSend(
-                    instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
-                    recentBlockhash: nil,
+                let instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
+                
+                return self.solanaClient.prepareTransaction(
+                    instructions: instructions,
                     signers: [owner, userTransferAuthority] + accountInstructions.signers,
-                    isSimulation: isSimulation
+                    feePayer: feePayer ?? owner.publicKey,
+                    accountsCreationFee: accountCreationFee,
+                    recentBlockhash: nil,
+                    lamportsPerSignature: nil
                 )
-                .map {.init(transactionId: $0, newWalletPubkey: toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil)}
+//                .map {.init(transactionId: $0, newWalletPubkey: toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil)}
             }
     }
     
@@ -424,13 +433,13 @@ public class OrcaSwap: OrcaSwapType {
         fromTokenPubkey: String,
         intermediaryTokenAddress: String,
         destinationTokenAddress: String,
+        feePayer: PublicKey?,
         wsolAccountInstructions: AccountInstructions?,
         isDestinationNew: Bool,
         amount: UInt64,
         slippage: Double,
-        isSimulation: Bool,
         minRenExemption: Lamports
-    ) -> Single<SwapResponse> {
+    ) -> Single<SolanaSDK.PreparedTransaction> {
         guard let owner = accountProvider.getAccount() else {return .error(OrcaSwapError.unauthorized)}
         guard let info = info else {return .error(OrcaSwapError.swapInfoMissing)}
         
@@ -444,11 +453,13 @@ public class OrcaSwap: OrcaSwapType {
                 toTokenPubkey: destinationTokenAddress,
                 amount: amount,
                 slippage: slippage,
-                feePayer: nil,
+                feePayer: feePayer,
                 minRenExemption: minRenExemption
             )
             .flatMap {[weak self] accountInstructions, userTransferAuthority, accountCreationFee in
                 guard let self = self else {throw OrcaSwapError.unknown}
+                
+                var accountCreationFee = accountCreationFee
                 
                 var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
                 var additionalSigners = [Account]()
@@ -456,15 +467,18 @@ public class OrcaSwap: OrcaSwapType {
                     additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
                     instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
                     instructions.append(contentsOf: wsolAccountInstructions.cleanupInstructions)
+                    accountCreationFee += minRenExemption
                 }
                 
-                return self.solanaClient.serializeAndSend(
+                return self.solanaClient.prepareTransaction(
                     instructions: instructions,
-                    recentBlockhash: nil,
                     signers: [owner] + additionalSigners + [userTransferAuthority] + accountInstructions.signers,
-                    isSimulation: isSimulation
+                    feePayer: feePayer ?? owner.publicKey,
+                    accountsCreationFee: accountCreationFee,
+                    recentBlockhash: nil,
+                    lamportsPerSignature: nil
                 )
-                .map {.init(transactionId: $0, newWalletPubkey: isDestinationNew ? accountInstructions.account.base58EncodedString: nil)}
+//                .map {.init(transactionId: $0, newWalletPubkey: isDestinationNew ? accountInstructions.account.base58EncodedString: nil)}
             }
             .retry { errors in
                 errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
@@ -481,9 +495,9 @@ public class OrcaSwap: OrcaSwapType {
         pool0: Pool,
         pool1: Pool,
         toWalletPubkey: String?,
-        feeRelayerFeePayer: PublicKey?,
+        feePayer: PublicKey?,
         minRenExemption: Lamports
-    ) -> Single<(PublicKey, PublicKey, AccountInstructions?, Lamports)> /*intermediaryTokenAddress, destination token address, WSOL account and instructions, account creation fee*/ {
+    ) -> Single<(PublicKey, PublicKey, AccountInstructions?, SolanaSDK.PreparedTransaction?)> /*intermediaryTokenAddress, destination token address, WSOL account and instructions, account creation fee*/ {
         
         guard let owner = accountProvider.getAccount(),
               let intermediaryTokenMint = try? info?.tokens[pool0.tokenBName]?.mint.toPublicKey(),
@@ -496,13 +510,13 @@ public class OrcaSwap: OrcaSwapType {
             requestCreatingIntermediaryToken = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
                 from: owner.publicKey,
                 amount: 0,
-                payer: feeRelayerFeePayer ?? owner.publicKey
+                payer: feePayer ?? owner.publicKey
             )
         } else {
             requestCreatingIntermediaryToken = solanaClient.prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: intermediaryTokenMint,
-                feePayer: feeRelayerFeePayer ?? owner.publicKey,
+                feePayer: feePayer ?? owner.publicKey,
                 closeAfterward: true
             )
         }
@@ -512,11 +526,13 @@ public class OrcaSwap: OrcaSwapType {
             solanaClient.prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: destinationMint,
-                feePayer: feeRelayerFeePayer ?? owner.publicKey,
+                feePayer: feePayer ?? owner.publicKey,
                 closeAfterward: false
             )
         )
-            .flatMap { intAccountInstructions, desAccountInstructions -> Single<(PublicKey, PublicKey, AccountInstructions?, Lamports)> in
+            .flatMap { [weak self] intAccountInstructions, desAccountInstructions -> Single<(PublicKey, PublicKey, AccountInstructions?, SolanaSDK.PreparedTransaction?)> in
+                guard let self = self else {throw OrcaSwapError.unknown}
+                
                 // get all creating instructions, PASS WSOL ACCOUNT INSTRUCTIONS TO THE SECOND TRANSACTION
                 var instructions = [TransactionInstruction]()
                 var wsolAccountInstructions: AccountInstructions?
@@ -542,23 +558,25 @@ public class OrcaSwap: OrcaSwapType {
                 
                 // if token address has already been created, then no need to send any transactions
                 if instructions.isEmpty {
-                    return .just((intAccountInstructions.account, desAccountInstructions.account, wsolAccountInstructions, accountCreationFee))
+                    return .just((intAccountInstructions.account, desAccountInstructions.account, wsolAccountInstructions, nil))
                 }
                 
                 // if creating transaction is needed
                 else {
-                    return self.solanaClient.serializeAndSend(
+                    return self.solanaClient.prepareTransaction(
                         instructions: instructions,
-                        recentBlockhash: nil,
                         signers: [owner],
-                        isSimulation: false // FIXME
+                        feePayer: feePayer ?? owner.publicKey,
+                        accountsCreationFee: accountCreationFee,
+                        recentBlockhash: nil,
+                        lamportsPerSignature: nil
                     )
+                        .map {(intAccountInstructions.account, desAccountInstructions.account, wsolAccountInstructions, $0)}
                         // wait for confirmation and return the addresses
-                        .flatMapCompletable { [weak self] txid in
-                            guard let self = self else {throw OrcaSwapError.unknown}
-                            return self.notificationHandler.waitForConfirmation(signature: txid)
-                        }
-                        .andThen(.just((intAccountInstructions.account, desAccountInstructions.account, wsolAccountInstructions, accountCreationFee)))
+//                        .flatMapCompletable { [weak self] txid in
+//                            guard let self = self else {throw OrcaSwapError.unknown}
+//                            return self.notificationHandler.waitForConfirmation(signature: txid)
+//                        }
                 }
             }
     }

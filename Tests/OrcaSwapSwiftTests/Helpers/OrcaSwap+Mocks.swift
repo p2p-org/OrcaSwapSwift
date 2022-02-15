@@ -69,6 +69,10 @@ extension OrcaSwap {
             fatalError()
         }
         
+        func prepareTransaction(instructions: [OrcaSwap.TransactionInstruction], signers: [OrcaSwap.Account], feePayer: OrcaSwap.PublicKey, accountsCreationFee: OrcaSwap.Lamports, recentBlockhash: String?, lamportsPerSignature: OrcaSwap.Lamports?) -> Single<SolanaSDK.PreparedTransaction> {
+            fatalError()
+        }
+        
         func getTokenAccountBalance(pubkey: String, commitment: SolanaSDK.Commitment?) -> Single<SolanaSDK.TokenAccountBalance> {
             // BTC/ETH
             if pubkey == "81w3VGbnszMKpUwh9EzAF9LpRzkKxc5XYCW64fuYk1jH" {

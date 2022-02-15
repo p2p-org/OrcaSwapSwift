@@ -131,7 +131,7 @@ class OrcaSwapSwapTests: XCTestCase {
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) throws -> Single<OrcaSwap.SwapResponse> {
+    ) throws -> Single<[SolanaSDK.PreparedTransaction]> {
         let bestPoolsPair = try Single.zip(
             bestPoolsPair.map { rawPool -> Single<OrcaSwap.Pool> in
                 var pool = poolsRepository[rawPool.name]!
@@ -148,8 +148,7 @@ class OrcaSwapSwapTests: XCTestCase {
             bestPoolsPair: bestPoolsPair,
             amount: amount,
             feePayer: nil,
-            slippage: 0.5,
-            isSimulation: isSimulation
+            slippage: 0.5
         )
         
         return swapSimulation

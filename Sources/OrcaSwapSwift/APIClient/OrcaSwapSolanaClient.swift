@@ -37,6 +37,15 @@ public protocol OrcaSwapSolanaClient {
         signers: [OrcaSwap.Account],
         isSimulation: Bool
     ) -> Single<String>
+    
+    func prepareTransaction(
+        instructions: [OrcaSwap.TransactionInstruction],
+        signers: [OrcaSwap.Account],
+        feePayer: OrcaSwap.PublicKey,
+        accountsCreationFee: OrcaSwap.Lamports,
+        recentBlockhash: String?,
+        lamportsPerSignature: OrcaSwap.Lamports?
+    ) -> Single<SolanaSDK.PreparedTransaction>
 }
 
 public protocol OrcaSwapAccountProvider {
