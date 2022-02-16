@@ -220,7 +220,6 @@ public class OrcaSwap: OrcaSwapType {
         bestPoolsPair: OrcaSwap.PoolsPair?,
         inputAmount: Double?,
         slippage: Double,
-        feePayer: SolanaSDK.PublicKey?,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
     ) throws -> OrcaSwapFeesModel {
@@ -241,11 +240,6 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         var expectedFee = SolanaSDK.FeeAmount.zero
-
-        // fee for payer's signature
-        if feePayer != nil && feePayer != owner {
-            expectedFee.transaction += numberOfTransactions * lamportsPerSignature
-        }
 
         // fee for owner's signature
         expectedFee.transaction += numberOfTransactions * lamportsPerSignature
@@ -280,8 +274,9 @@ public class OrcaSwap: OrcaSwapType {
         }
 
         // when destination is native SOL
-        if toWalletPubkey == owner.base58EncodedString {
+        else if toWalletPubkey == owner.base58EncodedString {
             expectedFee.transaction += lamportsPerSignature
+            expectedFee.accountBalances += minRentExempt
         }
         
         // liquidity provider fee
