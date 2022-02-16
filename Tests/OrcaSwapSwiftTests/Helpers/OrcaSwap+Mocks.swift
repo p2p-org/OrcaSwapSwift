@@ -69,6 +69,10 @@ extension OrcaSwap {
             fatalError()
         }
         
+        func serializeAndSend(preparedTransaction: SolanaSDK.PreparedTransaction, isSimulation: Bool) -> Single<String> {
+            fatalError()
+        }
+        
         func prepareTransaction(instructions: [OrcaSwap.TransactionInstruction], signers: [OrcaSwap.Account], feePayer: OrcaSwap.PublicKey, accountsCreationFee: OrcaSwap.Lamports, recentBlockhash: String?, lamportsPerSignature: OrcaSwap.Lamports?) -> Single<SolanaSDK.PreparedTransaction> {
             fatalError()
         }

@@ -32,9 +32,7 @@ public protocol OrcaSwapSolanaClient {
     var endpoint: OrcaSwap.APIEndPoint {get}
     
     func serializeAndSend(
-        instructions: [OrcaSwap.TransactionInstruction],
-        recentBlockhash: String?,
-        signers: [OrcaSwap.Account],
+        preparedTransaction: SolanaSDK.PreparedTransaction,
         isSimulation: Bool
     ) -> Single<String>
     
