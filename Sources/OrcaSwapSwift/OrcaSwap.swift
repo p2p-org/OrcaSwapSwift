@@ -219,13 +219,11 @@ public class OrcaSwap: OrcaSwapType {
         bestPoolsPair: OrcaSwap.PoolsPair?,
         inputAmount: Double?,
         slippage: Double,
+        feePayer: SolanaSDK.PublicKey?,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
     ) throws -> OrcaSwapFeesModel {
         guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
-        
-        var transactionFees: UInt64 = 0
-        var accountCreationFee: UInt64?
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
         var numberOfTransactions: UInt64 = 1
@@ -241,14 +239,23 @@ public class OrcaSwap: OrcaSwapType {
             }
         }
         
-        // owner's signatures
-        transactionFees += lamportsPerSignature * numberOfTransactions
-        
-        // when swap from or to native SOL, a fee for creating it is needed
-        if fromWalletPubkey == owner.base58EncodedString || toWalletPubkey == owner.base58EncodedString
-        {
-            transactionFees += lamportsPerSignature
-            accountCreationFee = accountCreationFee.map { $0 + minRentExempt } ?? minRentExempt
+        var expectedFee = SolanaSDK.FeeAmount.zero
+
+        // fee for payer's signature
+        if feePayer != nil && feePayer != owner {
+            expectedFee.transaction += numberOfTransactions * lamportsPerSignature
+        }
+
+        // fee for owner's signature
+        expectedFee.transaction += numberOfTransactions * lamportsPerSignature
+
+        // when source token is native SOL
+        if fromWalletPubkey == owner.base58EncodedString {
+            // WSOL's signature
+            expectedFee.transaction += lamportsPerSignature
+
+            // TODO: - Account creation fee?
+            expectedFee.accountBalances += minRentExempt
         }
         
         // when intermediary token is SOL, a fee for creating WSOL is needed
@@ -262,17 +269,28 @@ public class OrcaSwap: OrcaSwapType {
                 ),
            intermediaryToken.tokenName == "SOL"
         {
-            transactionFees += lamportsPerSignature
-            accountCreationFee = accountCreationFee.map { $0 + minRentExempt } ?? minRentExempt
+            expectedFee.transaction += lamportsPerSignature
+            expectedFee.accountBalances += minRentExempt
         }
         
+        // when needed to create destination
+        if toWalletPubkey == nil {
+            expectedFee.accountBalances += minRentExempt
+        }
+
+        // when destination is native SOL
+        if toWalletPubkey == owner.base58EncodedString {
+            expectedFee.transaction += lamportsPerSignature
+        }
+        
+        // liquidity provider fee
         var liquidityProviderFees = [UInt64]()
         if let inputAmount = inputAmount {
             liquidityProviderFees = try bestPoolsPair?.calculateLiquidityProviderFees(inputAmount: inputAmount, slippage: slippage) ?? []
         }
         
         return .init(
-            fees: .init(transaction: transactionFees, accountBalances: accountCreationFee ?? 0),
+            fees: expectedFee,
             liquidityProviderFees: liquidityProviderFees
         )
     }
