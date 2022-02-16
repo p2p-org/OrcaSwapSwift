@@ -244,9 +244,6 @@ public class OrcaSwap: OrcaSwapType {
         // owner's signatures
         transactionFees += lamportsPerSignature * numberOfTransactions
         
-        // userAuthoritys' signatures
-        transactionFees += lamportsPerSignature
-        
         // when swap from or to native SOL, a fee for creating it is needed
         if fromWalletPubkey == owner.base58EncodedString || toWalletPubkey == owner.base58EncodedString
         {
@@ -275,8 +272,7 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         return .init(
-            transactionFees: transactionFees,
-            accountCreationFee: accountCreationFee,
+            fees: .init(transaction: transactionFees, accountBalances: accountCreationFee ?? 0),
             liquidityProviderFees: liquidityProviderFees
         )
     }
