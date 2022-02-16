@@ -25,6 +25,7 @@ public protocol OrcaSwapType {
         bestPoolsPair: OrcaSwap.PoolsPair?,
         inputAmount: Double?,
         slippage: Double,
+        feePayer: SolanaSDK.PublicKey?,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
     ) throws -> OrcaSwapFeesModel
