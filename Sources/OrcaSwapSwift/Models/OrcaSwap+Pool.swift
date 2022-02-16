@@ -324,7 +324,7 @@ extension OrcaSwap.Pool {
                     instructions: instructions,
                     cleanupInstructions: cleanupInstructions,
                     signers: signers
-                ), minRenExemption)
+                ), accountCreationFee)
             }
     }
     
