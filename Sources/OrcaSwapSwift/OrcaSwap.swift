@@ -507,11 +507,11 @@ public class OrcaSwap: OrcaSwapType {
                 feePayer: feePayer,
                 minRenExemption: minRenExemption
             )
-            .map {accountInstructions, userTransferAuthority, accountCreationFee in
+            .map {accountInstructions, accountCreationFee in
                 (
                     .init(
                         instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
-                        signers: [owner, userTransferAuthority] + accountInstructions.signers,
+                        signers: [owner] + accountInstructions.signers,
                         accountCreationFee: accountCreationFee
                     ),
                     toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil
@@ -548,7 +548,7 @@ public class OrcaSwap: OrcaSwapType {
                 feePayer: feePayer,
                 minRenExemption: minRenExemption
             )
-            .map { accountInstructions, userTransferAuthority, accountCreationFee in
+            .map { accountInstructions, accountCreationFee in
                 var accountCreationFee = accountCreationFee
                 
                 var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
@@ -563,7 +563,7 @@ public class OrcaSwap: OrcaSwapType {
                 return (
                     .init(
                         instructions: instructions,
-                        signers: [owner] + additionalSigners + [userTransferAuthority] + accountInstructions.signers,
+                        signers: [owner] + additionalSigners + accountInstructions.signers,
                         accountCreationFee: accountCreationFee
                     ),
                     isDestinationNew ? accountInstructions.account.base58EncodedString: nil
