@@ -207,9 +207,9 @@ extension OrcaSwap.Pool {
         toTokenPubkey: String?,
         amount: OrcaSwap.Lamports,
         slippage: Double,
-        feeRelayerFeePayer: OrcaSwap.PublicKey?,
-        shouldCreateAssociatedTokenAccount: Bool
-    ) -> Single<OrcaSwap.AccountInstructions> {
+        feePayer: OrcaSwap.PublicKey?,
+        minRenExemption: OrcaSwap.Lamports
+    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
         guard let fromMint = try? tokens[tokenAName]?.mint.toPublicKey(),
               let toMint = try? tokens[tokenBName]?.mint.toPublicKey(),
               let fromTokenPubkey = try? fromTokenPubkey.toPublicKey()
@@ -224,7 +224,7 @@ extension OrcaSwap.Pool {
             prepareSourceRequest = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
                 from: owner.publicKey,
                 amount: amount,
-                payer: feeRelayerFeePayer ?? owner.publicKey
+                payer: feePayer ?? owner.publicKey
             )
         } else {
             prepareSourceRequest = .just(.init(account: fromTokenPubkey))
@@ -245,8 +245,8 @@ extension OrcaSwap.Pool {
                         cleanupInstructions: [
                             OrcaSwap.TokenProgram.closeAccountInstruction(
                                 account: toTokenPubkey,
-                                destination: feeRelayerFeePayer ?? owner.publicKey, // FIXME
-                                owner: feeRelayerFeePayer ?? owner.publicKey // FIXME
+                                destination: owner.publicKey,
+                                owner: owner.publicKey
                             )
                         ]
                     )
@@ -256,7 +256,7 @@ extension OrcaSwap.Pool {
                 prepareDestinationRequest = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
                     from: owner.publicKey,
                     amount: 0,
-                    payer: feeRelayerFeePayer ?? owner.publicKey
+                    payer: feePayer ?? owner.publicKey
                 )
             }
         }
@@ -271,7 +271,7 @@ extension OrcaSwap.Pool {
             prepareDestinationRequest = solanaClient.prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: toMint,
-                feePayer: feeRelayerFeePayer ?? owner.publicKey,
+                feePayer: feePayer ?? owner.publicKey,
                 closeAfterward: false
             )
         }
@@ -286,41 +286,38 @@ extension OrcaSwap.Pool {
                 // form instructions
                 var instructions = [OrcaSwap.TransactionInstruction]()
                 var cleanupInstructions = [OrcaSwap.TransactionInstruction]()
+                var accountCreationFee: UInt64 = 0
                 
                 // source
                 instructions.append(contentsOf: sourceAccountInstructions.instructions)
                 cleanupInstructions.append(contentsOf: sourceAccountInstructions.cleanupInstructions)
+                if !sourceAccountInstructions.instructions.isEmpty {
+                    accountCreationFee += minRenExemption
+                }
                 
                 // destination
                 instructions.append(contentsOf: destinationAccountInstructions.instructions)
                 cleanupInstructions.append(contentsOf: destinationAccountInstructions.cleanupInstructions)
+                if !destinationAccountInstructions.instructions.isEmpty {
+                    accountCreationFee += minRenExemption
+                }
                 
                 // userTransferAuthorityPubkey
-                let userTransferAuthorityPubkey: OrcaSwap.PublicKey
-                
-                // approve (for non fee-relayer only)
-                if let feePayer = feeRelayerFeePayer {
-                    userTransferAuthorityPubkey = owner.publicKey
-                    fatalError("Fee Relayer is implementing")
-                } else {
-                    userTransferAuthorityPubkey = userTransferAuthority.publicKey
-                    
-                    let approveTransaction = OrcaSwap.TokenProgram.approveInstruction(
-                        tokenProgramId: .tokenProgramId,
-                        account: sourceAccountInstructions.account,
-                        delegate: userTransferAuthorityPubkey,
-                        owner: owner.publicKey,
-                        amount: amount
-                    )
-                    instructions.append(approveTransaction)
-                }
+                let approveTransaction = OrcaSwap.TokenProgram.approveInstruction(
+                    tokenProgramId: .tokenProgramId,
+                    account: sourceAccountInstructions.account,
+                    delegate: userTransferAuthority.publicKey,
+                    owner: owner.publicKey,
+                    amount: amount
+                )
+                instructions.append(approveTransaction)
                 
                 // swap instructions
                 guard let minAmountOut = try? getMinimumAmountOut(inputAmount: amount, slippage: slippage)
                 else {throw OrcaSwapError.couldNotEstimatedMinimumOutAmount}
                 
                 let swapInstruction = try createSwapInstruction(
-                    userTransferAuthorityPubkey: userTransferAuthorityPubkey,
+                    userTransferAuthorityPubkey: userTransferAuthority.publicKey,
                     sourceTokenAddress: sourceAccountInstructions.account,
                     destinationTokenAddress: destinationAccountInstructions.account,
                     amountIn: amount,
@@ -329,20 +326,17 @@ extension OrcaSwap.Pool {
                 
                 instructions.append(swapInstruction)
                 
-                if let feePayer = feeRelayerFeePayer {
-                    fatalError("Fee Relayer is implementing")
-                } else {
-                    var signers = [OrcaSwap.Account]()
-                    signers.append(contentsOf: sourceAccountInstructions.signers)
-                    signers.append(contentsOf: destinationAccountInstructions.signers)
-                    
-                    return .init(
-                        account: destinationAccountInstructions.account,
-                        instructions: instructions,
-                        cleanupInstructions: cleanupInstructions,
-                        signers: signers
-                    )
-                }
+                var signers = [OrcaSwap.Account]()
+                signers.append(contentsOf: sourceAccountInstructions.signers)
+                signers.append(contentsOf: destinationAccountInstructions.signers)
+                signers.append(userTransferAuthority)
+                
+                return (.init(
+                    account: destinationAccountInstructions.account,
+                    instructions: instructions,
+                    cleanupInstructions: cleanupInstructions,
+                    signers: signers
+                ), minRenExemption)
             }
     }
     

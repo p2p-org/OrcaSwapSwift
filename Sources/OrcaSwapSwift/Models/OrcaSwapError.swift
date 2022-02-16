@@ -47,6 +47,10 @@ public struct OrcaSwapError: Error {
         .init(description: "Estimated amount is too high")
     }
     
+    public static var invalidNumberOfTransactions: Self {
+        .init(description: "Number of transactions is invalid")
+    }
+    
     // MARK: - Unknown
     public static var unknown: Self {
         .init(description: "Unknown error")
