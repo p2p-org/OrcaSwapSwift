@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'OrcaSwapSwift'
-  s.version          = '1.0.14'
+  s.version          = '1.0.15'
   s.summary          = 'A client for OrcaSwap written in Swift.'
   s.description      = <<-DESC
 TODO: Add long description of the pod here.
