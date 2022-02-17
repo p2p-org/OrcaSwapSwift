@@ -18,7 +18,12 @@ public protocol OrcaSwapType {
     func getTradablePoolsPairs(fromMint: String, toMint: String) -> Single<[OrcaSwap.PoolsPair]>
     func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [OrcaSwap.PoolsPair]) throws -> OrcaSwap.PoolsPair?
     func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [OrcaSwap.PoolsPair]) throws -> OrcaSwap.PoolsPair?
-    func getFees(
+    func getLiquidityProviderFee(
+        bestPoolsPair: OrcaSwap.PoolsPair?,
+        inputAmount: Double?,
+        slippage: Double
+    ) throws -> [UInt64]
+    func getNetworkFees(
         myWalletsMints: [String],
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -27,7 +32,7 @@ public protocol OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> OrcaSwapFeesModel
+    ) throws -> SolanaSDK.FeeAmount
     func prepareForSwapping(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -41,7 +46,6 @@ public protocol OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: OrcaSwap.PoolsPair,
         amount: Double,
-        feePayer: OrcaSwap.PublicKey?, // nil if the owner is the fee payer
         slippage: Double,
         isSimulation: Bool
     ) -> Single<OrcaSwap.SwapResponse>
@@ -210,9 +214,18 @@ public class OrcaSwap: OrcaSwapType {
         return bestPools
     }
     
-    /// Get fees from current context
+    /// Get liquidity provider fee
+    public func getLiquidityProviderFee(
+        bestPoolsPair: OrcaSwap.PoolsPair?,
+        inputAmount: Double?,
+        slippage: Double
+    ) throws -> [UInt64] {
+        try bestPoolsPair?.calculateLiquidityProviderFees(inputAmount: inputAmount ?? 0, slippage: slippage) ?? []
+    }
+    
+    /// Get network fees from current context
     /// - Returns: transactions fees (fees for signatures), liquidity provider fees (fees in intermediary token?, fees in destination token)
-    public func getFees(
+    public func getNetworkFees(
         myWalletsMints: [String],
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -221,11 +234,8 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> OrcaSwapFeesModel {
+    ) throws -> SolanaSDK.FeeAmount {
         guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
-        
-        var transactionFees: UInt64 = 0
-        var accountCreationFee: UInt64?
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
         var numberOfTransactions: UInt64 = 1
@@ -241,17 +251,18 @@ public class OrcaSwap: OrcaSwapType {
             }
         }
         
-        // owner's signatures
-        transactionFees += lamportsPerSignature * numberOfTransactions
-        
-        // userAuthoritys' signatures
-        transactionFees += lamportsPerSignature
-        
-        // when swap from or to native SOL, a fee for creating it is needed
-        if fromWalletPubkey == owner.base58EncodedString || toWalletPubkey == owner.base58EncodedString
-        {
-            transactionFees += lamportsPerSignature
-            accountCreationFee = accountCreationFee.map { $0 + minRentExempt } ?? minRentExempt
+        var expectedFee = SolanaSDK.FeeAmount.zero
+
+        // fee for owner's signature
+        expectedFee.transaction += numberOfTransactions * lamportsPerSignature
+
+        // when source token is native SOL
+        if fromWalletPubkey == owner.base58EncodedString {
+            // WSOL's signature
+            expectedFee.transaction += lamportsPerSignature
+
+            // TODO: - Account creation fee?
+            expectedFee.accountBalances += minRentExempt
         }
         
         // when intermediary token is SOL, a fee for creating WSOL is needed
@@ -265,20 +276,22 @@ public class OrcaSwap: OrcaSwapType {
                 ),
            intermediaryToken.tokenName == "SOL"
         {
-            transactionFees += lamportsPerSignature
-            accountCreationFee = accountCreationFee.map { $0 + minRentExempt } ?? minRentExempt
+            expectedFee.transaction += lamportsPerSignature
+            expectedFee.accountBalances += minRentExempt
         }
         
-        var liquidityProviderFees = [UInt64]()
-        if let inputAmount = inputAmount {
-            liquidityProviderFees = try bestPoolsPair?.calculateLiquidityProviderFees(inputAmount: inputAmount, slippage: slippage) ?? []
+        // when needed to create destination
+        if toWalletPubkey == nil {
+            expectedFee.accountBalances += minRentExempt
+        }
+
+        // when destination is native SOL
+        else if toWalletPubkey == owner.base58EncodedString {
+            expectedFee.transaction += lamportsPerSignature
+            expectedFee.accountBalances += minRentExempt
         }
         
-        return .init(
-            transactionFees: transactionFees,
-            accountCreationFee: accountCreationFee,
-            liquidityProviderFees: liquidityProviderFees
-        )
+        return expectedFee
     }
     
     /// Execute swap
@@ -366,7 +379,6 @@ public class OrcaSwap: OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: PoolsPair,
         amount: Double,
-        feePayer: OrcaSwap.PublicKey?,
         slippage: Double,
         isSimulation: Bool
     ) -> Single<SwapResponse> {
@@ -375,7 +387,7 @@ public class OrcaSwap: OrcaSwapType {
             toWalletPubkey: toWalletPubkey,
             bestPoolsPair: bestPoolsPair,
             amount: amount,
-            feePayer: feePayer,
+            feePayer: nil,
             slippage: slippage
         )
             .flatMap { [weak self] params in
@@ -387,7 +399,7 @@ public class OrcaSwap: OrcaSwapType {
                 }
                 var request = self.prepareAndSend(
                     swapTransactions[0],
-                    feePayer: feePayer ?? owner,
+                    feePayer: owner,
                     isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
                 )
                 if swapTransactions.count == 2 {
@@ -399,7 +411,7 @@ public class OrcaSwap: OrcaSwapType {
                         .andThen(
                             self.prepareAndSend(
                                 swapTransactions[1],
-                                feePayer: feePayer ?? owner,
+                                feePayer: owner,
                                 isSimulation: isSimulation
                             )
                                 .retry { errors in
@@ -507,11 +519,11 @@ public class OrcaSwap: OrcaSwapType {
                 feePayer: feePayer,
                 minRenExemption: minRenExemption
             )
-            .map {accountInstructions, userTransferAuthority, accountCreationFee in
+            .map {accountInstructions, accountCreationFee in
                 (
                     .init(
                         instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
-                        signers: [owner, userTransferAuthority] + accountInstructions.signers,
+                        signers: [owner] + accountInstructions.signers,
                         accountCreationFee: accountCreationFee
                     ),
                     toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil
@@ -548,7 +560,7 @@ public class OrcaSwap: OrcaSwapType {
                 feePayer: feePayer,
                 minRenExemption: minRenExemption
             )
-            .map { accountInstructions, userTransferAuthority, accountCreationFee in
+            .map { accountInstructions, accountCreationFee in
                 var accountCreationFee = accountCreationFee
                 
                 var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
@@ -563,7 +575,7 @@ public class OrcaSwap: OrcaSwapType {
                 return (
                     .init(
                         instructions: instructions,
-                        signers: [owner] + additionalSigners + [userTransferAuthority] + accountInstructions.signers,
+                        signers: [owner] + additionalSigners + accountInstructions.signers,
                         accountCreationFee: accountCreationFee
                     ),
                     isDestinationNew ? accountInstructions.account.base58EncodedString: nil

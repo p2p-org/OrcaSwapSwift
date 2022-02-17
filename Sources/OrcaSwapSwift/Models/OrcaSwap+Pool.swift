@@ -202,7 +202,6 @@ extension OrcaSwap.Pool {
         tokens: OrcaSwap.Tokens,
         solanaClient: OrcaSwapSolanaClient,
         owner: OrcaSwap.Account,
-        userTransferAuthority: OrcaSwap.Account,
         fromTokenPubkey: String,
         toTokenPubkey: String?,
         amount: OrcaSwap.Lamports,
@@ -302,22 +301,12 @@ extension OrcaSwap.Pool {
                     accountCreationFee += minRenExemption
                 }
                 
-                // userTransferAuthorityPubkey
-                let approveTransaction = OrcaSwap.TokenProgram.approveInstruction(
-                    tokenProgramId: .tokenProgramId,
-                    account: sourceAccountInstructions.account,
-                    delegate: userTransferAuthority.publicKey,
-                    owner: owner.publicKey,
-                    amount: amount
-                )
-                instructions.append(approveTransaction)
-                
                 // swap instructions
                 guard let minAmountOut = try? getMinimumAmountOut(inputAmount: amount, slippage: slippage)
                 else {throw OrcaSwapError.couldNotEstimatedMinimumOutAmount}
                 
                 let swapInstruction = try createSwapInstruction(
-                    userTransferAuthorityPubkey: userTransferAuthority.publicKey,
+                    userTransferAuthorityPubkey: owner.publicKey,
                     sourceTokenAddress: sourceAccountInstructions.account,
                     destinationTokenAddress: destinationAccountInstructions.account,
                     amountIn: amount,
@@ -329,14 +318,13 @@ extension OrcaSwap.Pool {
                 var signers = [OrcaSwap.Account]()
                 signers.append(contentsOf: sourceAccountInstructions.signers)
                 signers.append(contentsOf: destinationAccountInstructions.signers)
-                signers.append(userTransferAuthority)
                 
                 return (.init(
                     account: destinationAccountInstructions.account,
                     instructions: instructions,
                     cleanupInstructions: cleanupInstructions,
                     signers: signers
-                ), minRenExemption)
+                ), accountCreationFee)
             }
     }
     
