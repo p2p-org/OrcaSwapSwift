@@ -25,7 +25,6 @@ public protocol OrcaSwapType {
         bestPoolsPair: OrcaSwap.PoolsPair?,
         inputAmount: Double?,
         slippage: Double,
-        feePayer: SolanaSDK.PublicKey?,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
     ) throws -> OrcaSwapFeesModel
@@ -42,7 +41,6 @@ public protocol OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: OrcaSwap.PoolsPair,
         amount: Double,
-        feePayer: OrcaSwap.PublicKey?, // nil if the owner is the fee payer
         slippage: Double,
         isSimulation: Bool
     ) -> Single<OrcaSwap.SwapResponse>
@@ -376,7 +374,6 @@ public class OrcaSwap: OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: PoolsPair,
         amount: Double,
-        feePayer: OrcaSwap.PublicKey?,
         slippage: Double,
         isSimulation: Bool
     ) -> Single<SwapResponse> {
@@ -385,7 +382,7 @@ public class OrcaSwap: OrcaSwapType {
             toWalletPubkey: toWalletPubkey,
             bestPoolsPair: bestPoolsPair,
             amount: amount,
-            feePayer: feePayer,
+            feePayer: nil,
             slippage: slippage
         )
             .flatMap { [weak self] params in
@@ -397,7 +394,7 @@ public class OrcaSwap: OrcaSwapType {
                 }
                 var request = self.prepareAndSend(
                     swapTransactions[0],
-                    feePayer: feePayer ?? owner,
+                    feePayer: owner,
                     isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
                 )
                 if swapTransactions.count == 2 {
@@ -409,7 +406,7 @@ public class OrcaSwap: OrcaSwapType {
                         .andThen(
                             self.prepareAndSend(
                                 swapTransactions[1],
-                                feePayer: feePayer ?? owner,
+                                feePayer: owner,
                                 isSimulation: isSimulation
                             )
                                 .retry { errors in
