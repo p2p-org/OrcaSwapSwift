@@ -18,7 +18,12 @@ public protocol OrcaSwapType {
     func getTradablePoolsPairs(fromMint: String, toMint: String) -> Single<[OrcaSwap.PoolsPair]>
     func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [OrcaSwap.PoolsPair]) throws -> OrcaSwap.PoolsPair?
     func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [OrcaSwap.PoolsPair]) throws -> OrcaSwap.PoolsPair?
-    func getFees(
+    func getLiquidityProviderFee(
+        bestPoolsPair: OrcaSwap.PoolsPair?,
+        inputAmount: Double?,
+        slippage: Double
+    ) throws -> [UInt64]
+    func getNetworkFees(
         myWalletsMints: [String],
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -27,7 +32,7 @@ public protocol OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> OrcaSwapFeesModel
+    ) throws -> SolanaSDK.FeeAmount
     func prepareForSwapping(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -209,9 +214,18 @@ public class OrcaSwap: OrcaSwapType {
         return bestPools
     }
     
-    /// Get fees from current context
+    /// Get liquidity provider fee
+    public func getLiquidityProviderFee(
+        bestPoolsPair: OrcaSwap.PoolsPair?,
+        inputAmount: Double?,
+        slippage: Double
+    ) throws -> [UInt64] {
+        try bestPoolsPair?.calculateLiquidityProviderFees(inputAmount: inputAmount ?? 0, slippage: slippage) ?? []
+    }
+    
+    /// Get network fees from current context
     /// - Returns: transactions fees (fees for signatures), liquidity provider fees (fees in intermediary token?, fees in destination token)
-    public func getFees(
+    public func getNetworkFees(
         myWalletsMints: [String],
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -220,7 +234,7 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> OrcaSwapFeesModel {
+    ) throws -> SolanaSDK.FeeAmount {
         guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
@@ -277,16 +291,7 @@ public class OrcaSwap: OrcaSwapType {
             expectedFee.accountBalances += minRentExempt
         }
         
-        // liquidity provider fee
-        var liquidityProviderFees = [UInt64]()
-        if let inputAmount = inputAmount {
-            liquidityProviderFees = try bestPoolsPair?.calculateLiquidityProviderFees(inputAmount: inputAmount, slippage: slippage) ?? []
-        }
-        
-        return .init(
-            fees: expectedFee,
-            liquidityProviderFees: liquidityProviderFees
-        )
+        return expectedFee
     }
     
     /// Execute swap
