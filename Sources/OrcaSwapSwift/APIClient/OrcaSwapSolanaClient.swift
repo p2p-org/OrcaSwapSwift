@@ -16,6 +16,11 @@ public protocol OrcaSwapSolanaClient {
         span: UInt64
     ) -> Single<UInt64>
     
+    func checkIfAssociatedTokenAccountExists(
+        owner: SolanaSDK.PublicKey?,
+        mint: String
+    ) -> Single<Bool>
+    
     func prepareCreatingWSOLAccountAndCloseWhenDone(
         from owner: OrcaSwap.PublicKey,
         amount: OrcaSwap.Lamports,

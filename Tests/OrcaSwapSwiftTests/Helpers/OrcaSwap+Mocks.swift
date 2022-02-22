@@ -49,6 +49,10 @@ extension OrcaSwap {
     }
     
     struct MockSolanaClient: OrcaSwapSolanaClient {
+        func checkIfAssociatedTokenAccountExists(owner: SolanaSDK.PublicKey?, mint: String) -> Single<Bool> {
+            fatalError()
+        }
+        
         func getMinimumBalanceForRentExemption(span: UInt64) -> Single<UInt64> {
             fatalError()
         }

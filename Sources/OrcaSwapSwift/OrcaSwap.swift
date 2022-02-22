@@ -32,7 +32,7 @@ public protocol OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> SolanaSDK.FeeAmount
+    ) throws -> Single<SolanaSDK.FeeAmount>
     func prepareForSwapping(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -234,7 +234,7 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> SolanaSDK.FeeAmount {
+    ) throws -> Single<SolanaSDK.FeeAmount> {
         guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
@@ -264,6 +264,7 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         // when there is intermediary token
+        var isIntermediaryTokenCreatedRequest = Single<Bool>.just(true)
         if numberOfPools == 2,
            let decimals = bestPoolsPair![0].tokenABalance?.decimals,
            let inputAmount = inputAmount,
@@ -271,7 +272,8 @@ public class OrcaSwap: OrcaSwapType {
                 .getIntermediaryToken(
                     inputAmount: inputAmount.toLamport(decimals: decimals),
                     slippage: slippage
-                )
+                ),
+           let mint = getMint(tokenName: intermediaryToken.tokenName)
         {
             // when intermediary token is SOL, a deposit fee for creating WSOL is needed (will be returned after transaction)
             if intermediaryToken.tokenName == "SOL" {
@@ -279,9 +281,9 @@ public class OrcaSwap: OrcaSwapType {
                 expectedFee.deposit += minRentExempt
             }
             
-            // TODO: check if intermediary token creation is needed, add an account creation fee is needed
-            else /*if needsCreateIntermediaryToken*/ {
-                expectedFee.accountBalances += minRentExempt
+            // Check if intermediary token creation is needed
+            else {
+                isIntermediaryTokenCreatedRequest = solanaClient.checkIfAssociatedTokenAccountExists(owner: owner, mint: mint)
             }
         }
         
@@ -296,7 +298,14 @@ public class OrcaSwap: OrcaSwapType {
             expectedFee.deposit += minRentExempt
         }
         
-        return expectedFee
+        return isIntermediaryTokenCreatedRequest
+            .map { isIntermediaryTokenCreated in
+                // Intermediary token needs to be created, so add the fee
+                if isIntermediaryTokenCreated {
+                    expectedFee.accountBalances += minRentExempt
+                }
+                return expectedFee
+            }
     }
     
     /// Execute swap
