@@ -299,9 +299,10 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         return isIntermediaryTokenCreatedRequest
-            .map { isIntermediaryTokenCreated in
+            .map {!$0}
+            .map { needsCreateIntermediaryToken in
                 // Intermediary token needs to be created, so add the fee
-                if isIntermediaryTokenCreated {
+                if needsCreateIntermediaryToken {
                     expectedFee.accountBalances += minRentExempt
                 }
                 return expectedFee
