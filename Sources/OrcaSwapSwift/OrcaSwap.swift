@@ -260,12 +260,10 @@ public class OrcaSwap: OrcaSwapType {
         if fromWalletPubkey == owner.base58EncodedString {
             // WSOL's signature
             expectedFee.transaction += lamportsPerSignature
-
-            // TODO: - Account creation fee?
-            expectedFee.accountBalances += minRentExempt
+            expectedFee.deposit += minRentExempt
         }
         
-        // when intermediary token is SOL, a fee for creating WSOL is needed
+        // when there is intermediary token
         if numberOfPools == 2,
            let decimals = bestPoolsPair![0].tokenABalance?.decimals,
            let inputAmount = inputAmount,
@@ -273,11 +271,18 @@ public class OrcaSwap: OrcaSwapType {
                 .getIntermediaryToken(
                     inputAmount: inputAmount.toLamport(decimals: decimals),
                     slippage: slippage
-                ),
-           intermediaryToken.tokenName == "SOL"
+                )
         {
-            expectedFee.transaction += lamportsPerSignature
-            expectedFee.accountBalances += minRentExempt
+            // when intermediary token is SOL, a deposit fee for creating WSOL is needed (will be returned after transaction)
+            if intermediaryToken.tokenName == "SOL" {
+                expectedFee.transaction += lamportsPerSignature
+                expectedFee.deposit += minRentExempt
+            }
+            
+            // TODO: check if intermediary token creation is needed, add an account creation fee is needed
+            else /*if needsCreateIntermediaryToken*/ {
+                expectedFee.accountBalances += minRentExempt
+            }
         }
         
         // when needed to create destination
@@ -288,7 +293,7 @@ public class OrcaSwap: OrcaSwapType {
         // when destination is native SOL
         else if toWalletPubkey == owner.base58EncodedString {
             expectedFee.transaction += lamportsPerSignature
-            expectedFee.accountBalances += minRentExempt
+            expectedFee.deposit += minRentExempt
         }
         
         return expectedFee
@@ -636,6 +641,7 @@ public class OrcaSwap: OrcaSwapType {
                     if !intAccountInstructions.instructions.isEmpty {
                         accountCreationFee += minRenExemption
                     }
+                    // omit clean up instructions
                 }
                 if destinationMint == .wrappedSOLMint {
                     wsolAccountInstructions = desAccountInstructions
