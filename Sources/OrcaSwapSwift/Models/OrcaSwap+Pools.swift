@@ -85,6 +85,7 @@ extension OrcaSwap.Pools {
         }
         
         // get balances
+        lock.lock()
         let getBalancesRequest: Single<(SolanaSDK.TokenAccountBalance, SolanaSDK.TokenAccountBalance)>
         if let tokenABalance = pool.tokenABalance ?? balancesCache[pool.tokenAccountA],
            let tokenBBalance = pool.tokenBBalance ?? balancesCache[pool.tokenAccountB]
@@ -96,6 +97,7 @@ extension OrcaSwap.Pools {
                 solanaClient.getTokenAccountBalance(pubkey: pool.tokenAccountB, commitment: nil)
             )
         }
+        lock.unlock()
         
         return getBalancesRequest
             .do(onSuccess: {
