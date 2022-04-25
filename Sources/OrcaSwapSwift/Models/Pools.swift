@@ -9,21 +9,19 @@ import Foundation
 import RxSwift
 import SolanaSwift
 
-public extension OrcaSwap {
-    typealias Pools = [String: Pool] // [poolId: string]: PoolConfig;
-    typealias PoolsPair = [Pool]
-}
+public typealias Pools = [String: Pool] // [poolId: string]: PoolConfig;
+public typealias PoolsPair = [Pool]
 
 private var balancesCache = [String: SolanaSDK.TokenAccountBalance]()
 private let lock = NSLock()
 
-extension OrcaSwap.Pools {
+extension Pools {
     func getPools(
-        forRoute route: OrcaSwap.Route,
+        forRoute route: Route,
         fromTokenName: String,
         toTokenName: String,
         solanaClient: OrcaSwapSolanaClient
-    ) -> Single<[OrcaSwap.Pool]> {
+    ) -> Single<[Pool]> {
         guard route.count > 0 else {return .just([])}
         
         let requests = route.map {fixedPool(forPath: $0, solanaClient: solanaClient)}
@@ -77,7 +75,7 @@ extension OrcaSwap.Pools {
     private func fixedPool(
         forPath path: String, // Ex. BTC/SOL[aquafarm][stable]
         solanaClient: OrcaSwapSolanaClient
-    ) -> Single<OrcaSwap.Pool?> {
+    ) -> Single<Pool?> {
         guard var pool = self[path] else {return .just(nil)}
         
         if path.contains("[stable]") {
@@ -113,9 +111,9 @@ extension OrcaSwap.Pools {
     }
 }
 
-public extension OrcaSwap.PoolsPair {
+public extension PoolsPair {
     func constructExchange(
-        tokens: OrcaSwap.Tokens,
+        tokens: [String: TokenValue],
         solanaClient: OrcaSwapSolanaClient,
         owner: OrcaSwap.Account,
         fromTokenPubkey: String,

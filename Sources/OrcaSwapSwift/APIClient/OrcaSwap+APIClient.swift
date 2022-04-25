@@ -11,63 +11,74 @@ import RxAlamofire
 
 public protocol OrcaSwapAPIClient {
     var network: String {get}
-    func get<T: Decodable>(type: String) -> Single<T>
-}
-
-public extension OrcaSwapAPIClient {
-    func getTokens() -> Single<OrcaSwap.Tokens> {
-        get(type: "tokens")
-    }
-    
-    func getAquafarms() -> Single<OrcaSwap.Aquafarms> {
-        get(type: "aquafarms")
-    }
-    
-    func getPools() -> Single<OrcaSwap.Pools> {
-        get(type: "pools")
-    }
-    
-    func getProgramID() -> Single<OrcaSwap.ProgramID> {
-        get(type: "programIds")
-    }
+    func reload() -> Completable
+    func getTokens() -> Single<[String: TokenValue]>
+    func getAquafarms() -> Single<[String: Aquafarm]>
+    func getPools() -> Single<[String: Pool]>
+    func getProgramID() -> Single<ProgramIDS>
 }
 
 extension OrcaSwap {
-    public struct APIClient: OrcaSwapAPIClient {
+    public class APIClient: OrcaSwapAPIClient {
+        // MARK: - Properties
+        
+        private let urlString = "https://api.orca.so/configs"
+        private let locker = NSLock()
+        private let disposeBag = DisposeBag()
+        
+        public let network: String
+        private var cache: OrcaConfigs?
+        
+        // MARK: - Initializers
+        
         public init(network: String) {
             self.network = network
         }
         
-        public let network: String
-        private let cache = [String: [String: Decodable]]() // Network: [DataType: Decodable]
+        // MARK: - Methods
+        public func reload() -> Completable {
+            getConfigs(reload: true)
+                .asCompletable()
+        }
+        
+        public func getTokens() -> Single<[String : TokenValue]> {
+            getConfigs().map {$0.tokens}
+        }
+        
+        public func getAquafarms() -> Single<[String : Aquafarm]> {
+            getConfigs().map {$0.aquafarms}
+        }
+        
+        public func getPools() -> Single<[String : Pool]> {
+            getConfigs().map {$0.pools}
+        }
+        
+        public func getProgramID() -> Single<ProgramIDS> {
+            getConfigs().map {$0.programIDS}
+        }
         
         // MARK: - Helpers
-        public func get<T: Decodable>(type: String) -> Single<T> {
-            // cache
-            if let cached = cache[network]?[type] as? T{
-                return .just(cached)
+        private func getConfigs(reload: Bool = false) -> Single<OrcaConfigs> {
+            if !reload, let cache = cache {
+                return .just(cache)
             }
-            
             // hack: network
             var network = network
             if network == "mainnet-beta" {network = "mainnet"}
             
             // prepare url
-            let endpoint = "https://raw.githubusercontent.com/p2p-org/p2p-wallet-web/develop/src/app/contexts/swap/orca-commons/data/json"
-            let url = [endpoint, type, "\(network).json"].joined(separator: "/")
+            let url = URL(string: urlString)!
             
             // get
-            return request(.get, url)
-                .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
-                .validate()
-                .responseData()
+            return URLSession.shared.rx.data(.get, url)
                 .take(1)
                 .asSingle()
                 .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
-                .map {(response, data) -> T in
-                    let list = try JSONDecoder().decode(T.self, from: data)
-                    return list
-                }
+                .map { try JSONDecoder().decode(OrcaConfigs.self, from: $0) }
+                .do(onSuccess: { [weak self] configs in
+                    self?.locker.lock(); defer {self?.locker.unlock()}
+                    self?.cache = configs
+                })
         }
     }
 }

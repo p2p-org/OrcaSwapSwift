@@ -16,12 +16,12 @@ class OrcaSwapPreparationTests: XCTestCase {
     let socnMint = "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm"
     
     let orcaSwap = OrcaSwap(
-        apiClient: OrcaSwap.MockAPIClient(network: "mainnet"),
-        solanaClient: OrcaSwap.MockSolanaClient(),
-        accountProvider: OrcaSwap.MockAccountProvider(),
-        notificationHandler: OrcaSwap.MockSocket()
+        apiClient: MockAPIClient(network: "mainnet"),
+        solanaClient: MockSolanaClient(),
+        accountProvider: MockAccountProvider(),
+        notificationHandler: MockSocket()
     )
-    var swapInfo: OrcaSwap.SwapInfo {
+    var swapInfo: SwapInfo {
         orcaSwap.info!
     }
     
@@ -39,7 +39,7 @@ class OrcaSwapPreparationTests: XCTestCase {
         XCTAssertEqual(swapInfo.programIds.serumTokenSwap, "SwaPpA9LAaLfeLi3a68M4DjnLqgtticKg6CnyNwgAC8")
         XCTAssertEqual(swapInfo.programIds.tokenSwapV2, "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP")
         XCTAssertEqual(swapInfo.programIds.tokenSwap, "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1")
-        XCTAssertEqual(swapInfo.programIds.token, "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+        XCTAssertEqual(swapInfo.programIds.token, .tokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)
         XCTAssertEqual(swapInfo.programIds.aquafarm, "82yxjeMsvaURa4MbZZ7WZZHfobirZYkH1zF8fmeGtyaQ")
         XCTAssertEqual(swapInfo.tokenNames.count, 117)
     }

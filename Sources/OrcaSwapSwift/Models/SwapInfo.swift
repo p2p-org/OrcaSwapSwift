@@ -7,12 +7,10 @@
 
 import Foundation
 
-extension OrcaSwap {
-    public struct SwapInfo {
-        let routes: Routes
-        let tokens: Tokens
-        let pools: Pools
-        let programIds: ProgramID
-        let tokenNames: [String: String] // [Mint: TokenName]
-    }
+public struct SwapInfo {
+    let routes: Routes
+    let tokens: [String: TokenValue]
+    let pools: Pools
+    let programIds: ProgramIDS
+    let tokenNames: [String: String] // [Mint: TokenName]
 }

@@ -33,6 +33,6 @@ class OrcaSwapAPIClientTests: XCTestCase {
     
     func testRetrievingProgramId() throws {
         let programId = try client.getProgramID().toBlocking().first()
-        XCTAssertEqual("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", programId?.token)
+        XCTAssertEqual(.tokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA, programId?.token)
     }
 }
