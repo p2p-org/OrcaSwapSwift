@@ -219,63 +219,6 @@ public struct FtxIDS: Codable {
     }
 }
 
-// MARK: - Pool
-public struct Pool: Codable, Equatable {
-    public let account: String
-    public let authority: String
-    let nonce: UInt64
-    public let poolTokenMint: String
-    public var tokenAccountA: String
-    public var tokenAccountB: String
-    public let feeAccount: String
-    let hostFeeAccount: String?
-    let feeNumerator: UInt64
-    let feeDenominator: UInt64
-    let ownerTradeFeeNumerator: UInt64
-    let ownerTradeFeeDenominator: UInt64
-    let ownerWithdrawFeeNumerator: UInt64
-    let ownerWithdrawFeeDenominator: UInt64
-    let hostFeeNumerator: UInt64
-    let hostFeeDenominator: UInt64
-    var tokenAName: String
-    public internal(set) var tokenBName: String
-    let curveType: String
-    let amp: UInt64?
-    let programVersion: UInt64?
-    public let deprecated: Bool?
-    
-    // balance (lazy load)
-    var tokenABalance: SolanaSDK.TokenAccountBalance?
-    var tokenBBalance: SolanaSDK.TokenAccountBalance?
-    
-    var isStable: Bool?
-    
-    var reversed: Pool {
-        var reversedPool = self
-        Swift.swap(&reversedPool.tokenAccountA, &reversedPool.tokenAccountB)
-        Swift.swap(&reversedPool.tokenAName, &reversedPool.tokenBName)
-        Swift.swap(&reversedPool.tokenABalance, &reversedPool.tokenBBalance)
-        return reversedPool
-    }
-    
-    public func getTokenBDecimals() -> SolanaSDK.Decimals? {
-        tokenBBalance?.decimals
-    }
-    
-    public func getTokenADecimals() -> SolanaSDK.Decimals? {
-        tokenABalance?.decimals
-    }
-    
-    public var swapProgramId: PublicKey {
-        .orcaSwapId(version: programVersion == 2 ? 2: 1)
-    }
-}
-
-public enum CurveType: String, Codable {
-    case constantProduct = "ConstantProduct"
-    case stable = "Stable"
-}
-
 // MARK: - ProgramIDS
 public struct ProgramIDS: Codable {
     public let serumTokenSwap, tokenSwapV2, tokenSwap: String

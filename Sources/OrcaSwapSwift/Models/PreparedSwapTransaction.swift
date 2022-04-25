@@ -7,10 +7,8 @@
 
 import Foundation
 
-extension OrcaSwap {
-    public struct PreparedSwapTransaction {
-        public let instructions: [TransactionInstruction]
-        public let signers: [Account]
-        public let accountCreationFee: Lamports
-    }
+public struct PreparedSwapTransaction {
+    public let instructions: [TransactionInstruction]
+    public let signers: [Account]
+    public let accountCreationFee: Lamports
 }

@@ -40,7 +40,7 @@ public protocol OrcaSwapType {
         amount: Double,
         feePayer: PublicKey?, // nil if the owner is the fee payer
         slippage: Double
-    ) -> Single<([OrcaSwap.PreparedSwapTransaction], String?)>
+    ) -> Single<([PreparedSwapTransaction], String?)>
     func swap(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -454,7 +454,7 @@ public class OrcaSwap: OrcaSwapType {
     }
     
     func prepareAndSend(
-        _ swapTransaction: OrcaSwap.PreparedSwapTransaction,
+        _ swapTransaction: PreparedSwapTransaction,
         feePayer: PublicKey,
         isSimulation: Bool
     ) -> Single<String> {
