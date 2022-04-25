@@ -38,7 +38,7 @@ public protocol OrcaSwapType {
         toWalletPubkey: String?,
         bestPoolsPair: PoolsPair,
         amount: Double,
-        feePayer: OrcaSwap.PublicKey?, // nil if the owner is the fee payer
+        feePayer: PublicKey?, // nil if the owner is the fee payer
         slippage: Double
     ) -> Single<([OrcaSwap.PreparedSwapTransaction], String?)>
     func swap(
@@ -48,7 +48,7 @@ public protocol OrcaSwapType {
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) -> Single<OrcaSwap.SwapResponse>
+    ) -> Single<SwapResponse>
 }
 
 public class OrcaSwap: OrcaSwapType {
@@ -455,7 +455,7 @@ public class OrcaSwap: OrcaSwapType {
     
     func prepareAndSend(
         _ swapTransaction: OrcaSwap.PreparedSwapTransaction,
-        feePayer: OrcaSwap.PublicKey,
+        feePayer: PublicKey,
         isSimulation: Bool
     ) -> Single<String> {
         solanaClient.prepareTransaction(

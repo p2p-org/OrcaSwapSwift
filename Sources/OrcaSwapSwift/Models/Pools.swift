@@ -115,15 +115,15 @@ public extension PoolsPair {
     func constructExchange(
         tokens: [String: TokenValue],
         solanaClient: OrcaSwapSolanaClient,
-        owner: OrcaSwap.Account,
+        owner: Account,
         fromTokenPubkey: String,
         intermediaryTokenAddress: String? = nil,
         toTokenPubkey: String?,
-        amount: OrcaSwap.Lamports,
+        amount: Lamports,
         slippage: Double,
-        feePayer: OrcaSwap.PublicKey?,
-        minRenExemption: OrcaSwap.Lamports
-    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
         guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
         
         if count == 1 {
@@ -159,7 +159,7 @@ public extension PoolsPair {
                     feePayer: feePayer,
                     minRenExemption: minRenExemption
                 )
-                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> in
+                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(AccountInstructions, Lamports /*account creation fee*/)> in
                     guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
                     else {throw OrcaSwapError.unknown}
                     
@@ -281,7 +281,7 @@ public extension PoolsPair {
     func getIntermediaryToken(
         inputAmount: UInt64,
         slippage: Double
-    ) -> OrcaSwap.InterTokenInfo? {
+    ) -> InterTokenInfo? {
         guard count > 1 else {return nil}
         let pool0 = self[0]
         return .init(
@@ -357,10 +357,10 @@ public extension PoolsPair {
 }
 
 // MARK: - Helpers
-private func createSolanaAccountAsync(network: SolanaSDK.Network) -> Single<SolanaSDK.Account> {
+private func createSolanaAccountAsync(network: Network) -> Single<Account> {
     .create { observer in
         do {
-            let account = try SolanaSDK.Account(network: network)
+            let account = try Account(network: network)
             observer(.success(account))
         } catch {
             observer(.failure(error))

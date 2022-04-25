@@ -266,7 +266,7 @@ public struct Pool: Codable, Equatable {
         tokenABalance?.decimals
     }
     
-    public var swapProgramId: SolanaSDK.PublicKey {
+    public var swapProgramId: PublicKey {
         .orcaSwapId(version: programVersion == 2 ? 2: 1)
     }
 }

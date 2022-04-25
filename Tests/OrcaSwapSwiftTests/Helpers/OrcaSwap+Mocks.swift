@@ -11,11 +11,11 @@ import RxSwift
 @testable import OrcaSwapSwift
 
 class InMemoryAccountStorage: SolanaSDKAccountStorage {
-    private var _account: SolanaSDK.Account?
-    func save(_ account: SolanaSDK.Account) throws {
+    private var _account: Account?
+    func save(_ account: Account) throws {
         _account = account
     }
-    var account: SolanaSDK.Account? {
+    var account: Account? {
         _account
     }
     func clear() {
@@ -48,7 +48,7 @@ struct MockAPIClient: OrcaSwapAPIClient {
 }
 
 struct MockAccountProvider: OrcaSwapAccountProvider {
-    func getAccount() -> OrcaSwap.Account? {
+    func getAccount() -> Account? {
         try? .init(
             phrase: "miracle pizza supply useful steak border same again youth silver access hundred"
                 .components(separatedBy: " "),
@@ -57,13 +57,13 @@ struct MockAccountProvider: OrcaSwapAccountProvider {
         )
     }
     
-    func getNativeWalletAddress() -> OrcaSwap.PublicKey? {
+    func getNativeWalletAddress() -> PublicKey? {
         getAccount()?.publicKey
     }
 }
 
 struct MockSolanaClient: OrcaSwapSolanaClient {
-    func checkIfAssociatedTokenAccountExists(owner: SolanaSDK.PublicKey?, mint: String) -> Single<Bool> {
+    func checkIfAssociatedTokenAccountExists(owner: PublicKey?, mint: String) -> Single<Bool> {
         fatalError()
     }
     
@@ -71,19 +71,19 @@ struct MockSolanaClient: OrcaSwapSolanaClient {
         fatalError()
     }
     
-    func prepareCreatingWSOLAccountAndCloseWhenDone(from owner: OrcaSwap.PublicKey, amount: OrcaSwap.Lamports, payer: OrcaSwap.PublicKey) -> Single<OrcaSwap.AccountInstructions> {
+    func prepareCreatingWSOLAccountAndCloseWhenDone(from owner: PublicKey, amount: Lamports, payer: PublicKey) -> Single<AccountInstructions> {
         fatalError()
     }
     
-    func prepareForCreatingAssociatedTokenAccount(owner: OrcaSwap.PublicKey, mint: OrcaSwap.PublicKey, feePayer: OrcaSwap.PublicKey, closeAfterward: Bool) -> Single<OrcaSwap.AccountInstructions> {
+    func prepareForCreatingAssociatedTokenAccount(owner: PublicKey, mint: PublicKey, feePayer: PublicKey, closeAfterward: Bool) -> Single<AccountInstructions> {
         fatalError()
     }
     
-    var endpoint: OrcaSwap.APIEndPoint {
+    var endpoint: APIEndPoint {
         fatalError()
     }
     
-    func serializeAndSend(instructions: [OrcaSwap.TransactionInstruction], recentBlockhash: String?, signers: [OrcaSwap.Account], isSimulation: Bool) -> Single<String> {
+    func serializeAndSend(instructions: [TransactionInstruction], recentBlockhash: String?, signers: [Account], isSimulation: Bool) -> Single<String> {
         fatalError()
     }
     
@@ -91,7 +91,7 @@ struct MockSolanaClient: OrcaSwapSolanaClient {
         fatalError()
     }
     
-    func prepareTransaction(instructions: [OrcaSwap.TransactionInstruction], signers: [OrcaSwap.Account], feePayer: OrcaSwap.PublicKey, accountsCreationFee: OrcaSwap.Lamports, recentBlockhash: String?, lamportsPerSignature: OrcaSwap.Lamports?) -> Single<SolanaSDK.PreparedTransaction> {
+    func prepareTransaction(instructions: [TransactionInstruction], signers: [Account], feePayer: PublicKey, accountsCreationFee: Lamports, recentBlockhash: String?, lamportsPerSignature: Lamports?) -> Single<SolanaSDK.PreparedTransaction> {
         fatalError()
     }
     

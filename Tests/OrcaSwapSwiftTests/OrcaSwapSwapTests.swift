@@ -83,7 +83,7 @@ class OrcaSwapSwapTests: XCTestCase {
         
         let accountStorage = InMemoryAccountStorage()
         
-        let network = SolanaSDK.Network.mainnetBeta
+        let network = Network.mainnetBeta
         let orcaSwapNetwork = network == .mainnetBeta ? "mainnet": network.cluster
         
         solanaSDK = SolanaSDK(
@@ -91,7 +91,7 @@ class OrcaSwapSwapTests: XCTestCase {
             accountStorage: accountStorage
         )
         
-        let account = try SolanaSDK.Account(
+        let account = try Account(
             phrase: test.seedPhrase.components(separatedBy: " "),
             network: network
         )
@@ -161,7 +161,7 @@ class OrcaSwapSwapTests: XCTestCase {
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) throws -> Single<OrcaSwap.SwapResponse> {
+    ) throws -> Single<SwapResponse> {
         let bestPoolsPair = try Single.zip(
             bestPoolsPair.map { rawPool -> Single<Pool> in
                 var pool = poolsRepository[rawPool.name]!
