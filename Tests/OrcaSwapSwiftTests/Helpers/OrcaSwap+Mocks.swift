@@ -137,6 +137,38 @@ struct MockSolanaClient: OrcaSwapSolanaClient {
             return .just(.init(uiAmount: 27474.561069286, amount: "27474561069286", decimals: 9, uiAmountString: "27474.561069286"))
         }
         
+        if pubkey == "D3Wv78j9STkfJx3vhzoCzpMZ4RqCg8oaTNGzi1rZpdJg" {
+            return .just(.init(uiAmount: 26.094032, amount: "26094032", decimals: 6, uiAmountString: "26.094032"))
+        }
+        
+        if pubkey == "HMFLg2GtbWSSEe92Vuf2LQdUpCacGj2m2PwvMqzwQFNi" {
+            return .just(.init(uiAmount: 1022524.636749, amount: "1022524636749", decimals: 6, uiAmountString: "1022524.636749"))
+        }
+        
+        if pubkey == "H9h5yTBfCHcb4eRP87fXczzXgNaMzKihr7bf1sjw7iuZ" {
+            return .just(.init(uiAmount: 471.034553, amount: "471034553", decimals: 6, uiAmountString: "471.034553"))
+        }
+        
+        if pubkey == "JA98RXv2VdxQD8pRQq4dzJ1Bp4nH8nokCGmxvPWKJ3hx" {
+            return .just(.init(uiAmount: 1350604.603948, amount: "1350604603948", decimals: 6, uiAmountString: "1350604.603948"))
+        }
+        
+        if pubkey == "8eUUP3t9nkXPub8X6aW2a2gzi82pUFqefwkSY8rCcVxg" {
+            return .just(.init(uiAmount: 0.092121, amount: "92121", decimals: 6, uiAmountString: "0.092121"))
+        }
+        
+        if pubkey == "2tNEBoEuqJ1pPmA1fpitDnowgUQZXvCT6W3fui67AFfV" {
+            return .just(.init(uiAmount: 265.732429, amount: "265732429", decimals: 6, uiAmountString: "265.732429"))
+        }
+        
+        if pubkey == "7xs9QsrxQDVoWQ8LQ8VsVjfPKBrPGjvg8ZhaLnU1i2VR" {
+            return .just(.init(uiAmount: 2953.826989329, amount: "2953826989329", decimals: 9, uiAmountString: "2953.826989329"))
+        }
+        
+        if pubkey == "FZFJK64Fk1t619zmVPqCx8Uy29zJ3WuvjWitCQuxXRo3" {
+            return .just(.init(uiAmount: 300343.554305, amount: "300343554305", decimals: 6, uiAmountString: "300343.554305"))
+        }
+        
         fatalError()
     }
 }
