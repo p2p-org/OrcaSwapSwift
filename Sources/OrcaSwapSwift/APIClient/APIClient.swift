@@ -7,7 +7,6 @@
 
 import Foundation
 import RxSwift
-import RxAlamofire
 
 public protocol OrcaSwapAPIClient {
     var network: String {get}
@@ -69,7 +68,7 @@ public class APIClient: OrcaSwapAPIClient {
         let url = URL(string: urlString)!
         
         // get
-        return URLSession.shared.rx.data(.get, url)
+        return URLSession.shared.rx.data(request: .init(url: url))
             .take(1)
             .asSingle()
             .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
