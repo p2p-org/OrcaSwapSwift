@@ -359,8 +359,10 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) -> Single<SwapResponse> {
-        prepareForSwapping(
+    ) async throws -> SwapResponse {
+        guard let owner = accountProvider.getAccount()?.publicKey else {throw OrcaSwapError.unauthorized}
+        
+        let (swapTransactions, newAccount) = try await prepareForSwapping(
             fromWalletPubkey: fromWalletPubkey,
             toWalletPubkey: toWalletPubkey,
             bestPoolsPair: bestPoolsPair,
@@ -368,18 +370,33 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
             feePayer: nil,
             slippage: slippage
         )
+        
+        guard swapTransactions.count > 0 && swapTransactions.count <= 2 else {
+            throw OrcaSwapError.invalidNumberOfTransactions
+        }
+        
+        let txid = try await prepareAndSend(
+            swapTransactions[0],
+            feePayer: owner,
+            isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
+        )
+        
+        if swapTransactions.count == 2 {
+            try await solanaClient.waitForConfirmation(signature: txid)
+            
+            return try await prepareAndSend(
+                swapTransactions[1],
+                feePayer: owner,
+                isSimulation: isSimulation
+            )
+        }
+        
+        
+        
+        
             .flatMap { [weak self] params in
-                guard let self = self else {throw OrcaSwapError.unknown}
-                guard let owner = self.accountProvider.getAccount()?.publicKey else {throw OrcaSwapError.unauthorized}
-                let swapTransactions = params.0
-                guard swapTransactions.count > 0 && swapTransactions.count <= 2 else {
-                    throw OrcaSwapError.invalidNumberOfTransactions
-                }
-                var request = self.prepareAndSend(
-                    swapTransactions[0],
-                    feePayer: owner,
-                    isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
-                )
+                
+                
                 if swapTransactions.count == 2 {
                     request = request
                         .flatMapCompletable { [weak self] txid in
@@ -420,7 +437,7 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         _ swapTransaction: PreparedSwapTransaction,
         feePayer: PublicKey,
         isSimulation: Bool
-    ) -> Single<String> {
+    ) async throws -> String {
         solanaClient.prepareTransaction(
             instructions: swapTransaction.instructions,
             signers: swapTransaction.signers,
