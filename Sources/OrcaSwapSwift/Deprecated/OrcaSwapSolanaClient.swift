@@ -9,6 +9,7 @@ import Foundation
 import RxSwift
 import SolanaSwift
 
+@available(*, deprecated, message: "Use SolanaAPIClient instead")
 public protocol OrcaSwapSolanaClient {
     func getTokenAccountBalance(pubkey: String, commitment: Commitment?) -> Single<TokenAccountBalance>
     

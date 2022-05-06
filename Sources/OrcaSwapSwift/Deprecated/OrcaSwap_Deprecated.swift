@@ -1,28 +1,70 @@
 //
-//  File.swift
-//  
+//  OrcaSwap.swift
 //
-//  Created by Chung Tran on 06/05/2022.
+//
+//  Created by Chung Tran on 13/10/2021.
 //
 
 import Foundation
+import RxSwift
 import SolanaSwift
 
-public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapTypeV2 {
+private var cache: SwapInfo?
+
+public protocol OrcaSwapType {
+    func load() -> Completable
+    func getMint(tokenName: String) -> String?
+    func findPosibleDestinationMints(fromMint: String) throws -> [String]
+    func getTradablePoolsPairs(fromMint: String, toMint: String) -> Single<[PoolsPair]>
+    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
+    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
+    func getLiquidityProviderFee(
+        bestPoolsPair: PoolsPair?,
+        inputAmount: Double?,
+        slippage: Double
+    ) throws -> [UInt64]
+    func getNetworkFees(
+        myWalletsMints: [String],
+        fromWalletPubkey: String,
+        toWalletPubkey: String?,
+        bestPoolsPair: PoolsPair?,
+        inputAmount: Double?,
+        slippage: Double,
+        lamportsPerSignature: UInt64,
+        minRentExempt: UInt64
+    ) throws -> Single<FeeAmount>
+    func prepareForSwapping(
+        fromWalletPubkey: String,
+        toWalletPubkey: String?,
+        bestPoolsPair: PoolsPair,
+        amount: Double,
+        feePayer: PublicKey?, // nil if the owner is the fee payer
+        slippage: Double
+    ) -> Single<([PreparedSwapTransaction], String?)>
+    func swap(
+        fromWalletPubkey: String,
+        toWalletPubkey: String?,
+        bestPoolsPair: PoolsPair,
+        amount: Double,
+        slippage: Double,
+        isSimulation: Bool
+    ) -> Single<SwapResponse>
+}
+
+public class OrcaSwap: OrcaSwapType {
     // MARK: - Properties
-    private var cache: SwapInfo?
-    let apiClient: OrcaSwapAPIClientV2
-    let solanaClient: SolanaAPIClient
+    let apiClient: OrcaSwapAPIClient
+    let solanaClient: OrcaSwapSolanaClient
     let accountProvider: OrcaSwapAccountProvider
     let notificationHandler: OrcaSwapSignatureConfirmationHandler
     
     var info: SwapInfo?
-    private let locker = NSLock()
+    private let lock = NSLock()
     
     // MARK: - Initializer
     public init(
-        apiClient: OrcaSwapAPIClientV2,
-        solanaClient: SolanaAPIClient,
+        apiClient: OrcaSwapAPIClient,
+        solanaClient: OrcaSwapSolanaClient,
         accountProvider: OrcaSwapAccountProvider,
         notificationHandler: OrcaSwapSignatureConfirmationHandler
     ) {
@@ -34,38 +76,35 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
     
     // MARK: - Methods
     /// Prepare all needed infos for swapping
-    public func load() async throws {
-        // already been loaded
-        if info != nil { return }
-        
-        // load
-        let (tokens, pools, programId) = try await (
+    public func load() -> Completable {
+        if info != nil {return .empty()}
+        return Single.zip(
             apiClient.getTokens(),
             apiClient.getPools(),
             apiClient.getProgramID()
         )
-        
-        // find all available routes
-        let routes = findAllAvailableRoutes(tokens: tokens, pools: pools)
-        let tokenNames = tokens.reduce([String: String]()) { result, token in
-            var result = result
-            result[token.value.mint] = token.key
-            return result
-        }
-        
-        // create swap info
-        let swapInfo = SwapInfo(
-            routes: routes,
-            tokens: tokens,
-            pools: pools,
-            programIds: programId,
-            tokenNames: tokenNames
-        )
-        
-        // save cache
-        locker.lock()
-        info = swapInfo
-        locker.unlock()
+            .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
+            .map { tokens, pools, programId -> SwapInfo in
+                let routes = findAllAvailableRoutes(tokens: tokens, pools: pools)
+                let tokenNames = tokens.reduce([String: String]()) { result, token in
+                    var result = result
+                    result[token.value.mint] = token.key
+                    return result
+                }
+                return .init(
+                    routes: routes,
+                    tokens: tokens,
+                    pools: pools,
+                    programIds: programId,
+                    tokenNames: tokenNames
+                )
+            }
+            .do(onSuccess: {[weak self] info in
+                self?.lock.lock()
+                self?.info = info
+                self?.lock.unlock()
+            })
+            .asCompletable()
     }
     
     /// Get token's mint address by its name
@@ -94,16 +133,14 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
     public func getTradablePoolsPairs(
         fromMint: String,
         toMint: String
-    ) async throws -> [PoolsPair] {
-        // assertion
+    ) -> Single<[PoolsPair]> {
         guard let fromTokenName = getTokenFromMint(fromMint)?.name,
               let toTokenName = getTokenFromMint(toMint)?.name,
               let currentRoutes = try? findRoutes(fromTokenName: fromTokenName, toTokenName: toTokenName)
                 .first?.value
-        else { return [] }
+        else {return .just([])}
         
         // retrieve all routes
-        
         let requests: [Single<[Pool]>] = currentRoutes.compactMap {
             guard $0.count <= 2 else {return nil} // FIXME: Support more than 2 paths later
             return info?.pools.getPools(
