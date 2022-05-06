@@ -10,7 +10,7 @@ import RxSwift
 import SolanaSwift
 
 public protocol OrcaSwapSolanaClient {
-    func getTokenAccountBalance(pubkey: String, commitment: SolanaSDK.Commitment?) -> Single<SolanaSDK.TokenAccountBalance>
+    func getTokenAccountBalance(pubkey: String, commitment: Commitment?) -> Single<TokenAccountBalance>
     
     func getMinimumBalanceForRentExemption(
         span: UInt64
@@ -37,7 +37,7 @@ public protocol OrcaSwapSolanaClient {
     var endpoint: APIEndPoint {get}
     
     func serializeAndSend(
-        preparedTransaction: SolanaSDK.PreparedTransaction,
+        preparedTransaction: PreparedTransaction,
         isSimulation: Bool
     ) -> Single<String>
     
@@ -48,7 +48,7 @@ public protocol OrcaSwapSolanaClient {
         accountsCreationFee: Lamports,
         recentBlockhash: String?,
         lamportsPerSignature: Lamports?
-    ) -> Single<SolanaSDK.PreparedTransaction>
+    ) -> Single<PreparedTransaction>
 }
 
 public protocol OrcaSwapAccountProvider {

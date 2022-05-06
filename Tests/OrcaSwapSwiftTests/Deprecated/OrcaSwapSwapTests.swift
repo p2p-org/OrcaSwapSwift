@@ -83,7 +83,7 @@ class OrcaSwapSwapTests: XCTestCase {
         
         let accountStorage = InMemoryAccountStorage()
         
-        let network = SolanaSDK.Network.mainnetBeta
+        let network = Network.mainnetBeta
         let orcaSwapNetwork = network == .mainnetBeta ? "mainnet": network.cluster
         
         solanaSDK = SolanaSDK(
@@ -91,7 +91,7 @@ class OrcaSwapSwapTests: XCTestCase {
             accountStorage: accountStorage
         )
         
-        let account = try SolanaSDK.Account(
+        let account = try Account(
             phrase: test.seedPhrase.components(separatedBy: " "),
             network: network
         )
@@ -129,7 +129,7 @@ class OrcaSwapSwapTests: XCTestCase {
         )
             .retry { errors in
                 errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
-                    let error = error as! SolanaSDK.Error
+                    let error = error as! SolanaError
                     switch error {
                     case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
                         return .timer(.seconds(1), scheduler: MainScheduler.instance)

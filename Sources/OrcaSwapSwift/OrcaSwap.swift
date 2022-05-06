@@ -32,7 +32,7 @@ public protocol OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> Single<SolanaSDK.FeeAmount>
+    ) throws -> Single<FeeAmount>
     func prepareForSwapping(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
@@ -234,7 +234,7 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> Single<SolanaSDK.FeeAmount> {
+    ) throws -> Single<FeeAmount> {
         guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
@@ -251,7 +251,7 @@ public class OrcaSwap: OrcaSwapType {
             }
         }
         
-        var expectedFee = SolanaSDK.FeeAmount.zero
+        var expectedFee = FeeAmount.zero
 
         // fee for owner's signature
         expectedFee.transaction += numberOfTransactions * lamportsPerSignature
@@ -431,7 +431,7 @@ public class OrcaSwap: OrcaSwapType {
                             )
                                 .retry { errors in
                                     errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
-                                        if let error = error as? SolanaSDK.Error {
+                                        if let error = error as? SolanaError {
                                             switch error {
                                             case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
                                                 return .timer(.seconds(1), scheduler: MainScheduler.instance)

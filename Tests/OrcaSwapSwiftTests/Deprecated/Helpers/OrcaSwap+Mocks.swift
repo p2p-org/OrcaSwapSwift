@@ -11,11 +11,11 @@ import RxSwift
 @testable import OrcaSwapSwift
 
 class InMemoryAccountStorage: SolanaSDKAccountStorage {
-    private var _account: SolanaSDK.Account?
-    func save(_ account: SolanaSDK.Account) throws {
+    private var _account: Account?
+    func save(_ account: Account) throws {
         _account = account
     }
-    var account: SolanaSDK.Account? {
+    var account: Account? {
         _account
     }
     func clear() {
@@ -73,15 +73,15 @@ extension OrcaSwap {
             fatalError()
         }
         
-        func serializeAndSend(preparedTransaction: SolanaSDK.PreparedTransaction, isSimulation: Bool) -> Single<String> {
+        func serializeAndSend(preparedTransaction: PreparedTransaction, isSimulation: Bool) -> Single<String> {
             fatalError()
         }
         
-        func prepareTransaction(instructions: [TransactionInstruction], signers: [Account], feePayer: PublicKey, accountsCreationFee: Lamports, recentBlockhash: String?, lamportsPerSignature: Lamports?) -> Single<SolanaSDK.PreparedTransaction> {
+        func prepareTransaction(instructions: [TransactionInstruction], signers: [Account], feePayer: PublicKey, accountsCreationFee: Lamports, recentBlockhash: String?, lamportsPerSignature: Lamports?) -> Single<PreparedTransaction> {
             fatalError()
         }
         
-        func getTokenAccountBalance(pubkey: String, commitment: SolanaSDK.Commitment?) -> Single<SolanaSDK.TokenAccountBalance> {
+        func getTokenAccountBalance(pubkey: String, commitment: Commitment?) -> Single<TokenAccountBalance> {
             // BTC/ETH
             if pubkey == "81w3VGbnszMKpUwh9EzAF9LpRzkKxc5XYCW64fuYk1jH" {
                 return .just(.init(uiAmount: 0.001014, amount: "1014", decimals: 6, uiAmountString: "0.001014"))

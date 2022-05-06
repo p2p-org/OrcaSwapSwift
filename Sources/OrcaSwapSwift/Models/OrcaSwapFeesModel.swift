@@ -8,6 +8,6 @@
 import SolanaSwift
 
 public struct OrcaSwapFeesModel {
-    public let fees: SolanaSDK.FeeAmount
+    public let fees: FeeAmount
     public let liquidityProviderFees: [UInt64]
 }

@@ -14,7 +14,7 @@ public extension OrcaSwap {
     typealias PoolsPair = [Pool]
 }
 
-private var balancesCache = [String: SolanaSDK.TokenAccountBalance]()
+private var balancesCache = [String: TokenAccountBalance]()
 private let lock = NSLock()
 
 extension OrcaSwap.Pools {
@@ -85,7 +85,7 @@ extension OrcaSwap.Pools {
         }
         
         // get balances
-        let getBalancesRequest: Single<(SolanaSDK.TokenAccountBalance, SolanaSDK.TokenAccountBalance)>
+        let getBalancesRequest: Single<(TokenAccountBalance, TokenAccountBalance)>
         if let tokenABalance = pool.tokenABalance ?? balancesCache[pool.tokenAccountA],
            let tokenBBalance = pool.tokenBBalance ?? balancesCache[pool.tokenAccountB]
         {
@@ -359,17 +359,17 @@ public extension OrcaSwap.PoolsPair {
 }
 
 // MARK: - Helpers
-private func createSolanaAccountAsync(network: SolanaSDK.Network) -> Single<SolanaSDK.Account> {
-    .create { observer in
-        do {
-            let account = try SolanaSDK.Account(network: network)
-            observer(.success(account))
-        } catch {
-            observer(.failure(error))
+private func createSolanaAccountAsync(network: Network) -> Single<Account> {
+    AsyncThrowingStream<Account, Error> {continuation in
+        Task(priority: .high) {
+            let account = try await Account(network: network)
+            continuation.yield(account)
+            continuation.finish()
         }
-        return Disposables.create()
     }
-    .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
+    .asObservable()
+    .take(1)
+    .asSingle()
 }
 
 private extension String {

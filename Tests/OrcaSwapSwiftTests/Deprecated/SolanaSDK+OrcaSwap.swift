@@ -7,6 +7,7 @@
 
 import Foundation
 import RxSwift
+import OrcaSwapSwift
 import SolanaSwift
 
 extension SolanaSDK: OrcaSwapSolanaClient {}

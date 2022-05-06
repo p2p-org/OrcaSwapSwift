@@ -40,8 +40,8 @@ public extension OrcaSwap {
         public let deprecated: Bool?
         
         // balance (lazy load)
-        var tokenABalance: SolanaSDK.TokenAccountBalance?
-        var tokenBBalance: SolanaSDK.TokenAccountBalance?
+        var tokenABalance: TokenAccountBalance?
+        var tokenBBalance: TokenAccountBalance?
         
         var isStable: Bool?
         
@@ -53,11 +53,11 @@ public extension OrcaSwap {
             return reversedPool
         }
         
-        public func getTokenBDecimals() -> SolanaSDK.Decimals? {
+        public func getTokenBDecimals() -> Decimals? {
             tokenBBalance?.decimals
         }
         
-        public func getTokenADecimals() -> SolanaSDK.Decimals? {
+        public func getTokenADecimals() -> Decimals? {
             tokenABalance?.decimals
         }
         
@@ -92,7 +92,7 @@ extension OrcaSwap.Pool {
         destinationTokenAddress: PublicKey,
         amountIn: UInt64,
         minAmountOut: UInt64
-    ) throws -> SolanaSDK.TransactionInstruction {
+    ) throws -> TransactionInstruction {
         TokenSwapProgram.swapInstruction(
             tokenSwap: try account.toPublicKey(),
             authority: try authority.toPublicKey(),
