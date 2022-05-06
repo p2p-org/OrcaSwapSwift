@@ -9,17 +9,17 @@ import Foundation
 import RxSwift
 import SolanaSwift
 
-private var cache: OrcaSwap.SwapInfo?
+private var cache: SwapInfo?
 
 public protocol OrcaSwapType {
     func load() -> Completable
     func getMint(tokenName: String) -> String?
     func findPosibleDestinationMints(fromMint: String) throws -> [String]
-    func getTradablePoolsPairs(fromMint: String, toMint: String) -> Single<[OrcaSwap.PoolsPair]>
-    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [OrcaSwap.PoolsPair]) throws -> OrcaSwap.PoolsPair?
-    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [OrcaSwap.PoolsPair]) throws -> OrcaSwap.PoolsPair?
+    func getTradablePoolsPairs(fromMint: String, toMint: String) -> Single<[PoolsPair]>
+    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
+    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
     func getLiquidityProviderFee(
-        bestPoolsPair: OrcaSwap.PoolsPair?,
+        bestPoolsPair: PoolsPair?,
         inputAmount: Double?,
         slippage: Double
     ) throws -> [UInt64]
@@ -27,7 +27,7 @@ public protocol OrcaSwapType {
         myWalletsMints: [String],
         fromWalletPubkey: String,
         toWalletPubkey: String?,
-        bestPoolsPair: OrcaSwap.PoolsPair?,
+        bestPoolsPair: PoolsPair?,
         inputAmount: Double?,
         slippage: Double,
         lamportsPerSignature: UInt64,
@@ -36,19 +36,19 @@ public protocol OrcaSwapType {
     func prepareForSwapping(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
-        bestPoolsPair: OrcaSwap.PoolsPair,
+        bestPoolsPair: PoolsPair,
         amount: Double,
-        feePayer: OrcaSwap.PublicKey?, // nil if the owner is the fee payer
+        feePayer: PublicKey?, // nil if the owner is the fee payer
         slippage: Double
-    ) -> Single<([OrcaSwap.PreparedSwapTransaction], String?)>
+    ) -> Single<([PreparedSwapTransaction], String?)>
     func swap(
         fromWalletPubkey: String,
         toWalletPubkey: String?,
-        bestPoolsPair: OrcaSwap.PoolsPair,
+        bestPoolsPair: PoolsPair,
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) -> Single<OrcaSwap.SwapResponse>
+    ) -> Single<SwapResponse>
 }
 
 public class OrcaSwap: OrcaSwapType {
@@ -58,7 +58,7 @@ public class OrcaSwap: OrcaSwapType {
     let accountProvider: OrcaSwapAccountProvider
     let notificationHandler: OrcaSwapSignatureConfirmationHandler
     
-    var info: OrcaSwap.SwapInfo?
+    var info: SwapInfo?
     private let lock = NSLock()
     
     // MARK: - Initializer
@@ -216,7 +216,7 @@ public class OrcaSwap: OrcaSwapType {
     
     /// Get liquidity provider fee
     public func getLiquidityProviderFee(
-        bestPoolsPair: OrcaSwap.PoolsPair?,
+        bestPoolsPair: PoolsPair?,
         inputAmount: Double?,
         slippage: Double
     ) throws -> [UInt64] {
@@ -229,7 +229,7 @@ public class OrcaSwap: OrcaSwapType {
         myWalletsMints: [String],
         fromWalletPubkey: String,
         toWalletPubkey: String?,
-        bestPoolsPair: OrcaSwap.PoolsPair?,
+        bestPoolsPair: PoolsPair?,
         inputAmount: Double?,
         slippage: Double,
         lamportsPerSignature: UInt64,
@@ -454,8 +454,8 @@ public class OrcaSwap: OrcaSwapType {
     }
     
     func prepareAndSend(
-        _ swapTransaction: OrcaSwap.PreparedSwapTransaction,
-        feePayer: OrcaSwap.PublicKey,
+        _ swapTransaction: PreparedSwapTransaction,
+        feePayer: PublicKey,
         isSimulation: Bool
     ) -> Single<String> {
         solanaClient.prepareTransaction(
@@ -504,7 +504,7 @@ public class OrcaSwap: OrcaSwapType {
     }
     
     /// Map mint to token info
-    private func getTokenFromMint(_ mint: String) -> (name: String, info: Token)? {
+    private func getTokenFromMint(_ mint: String) -> (name: String, info: TokenValue)? {
         let tokenInfo = info?.tokens.first(where: {$0.value.mint == mint})
         guard let name = tokenInfo?.key, let value = tokenInfo?.value else {return nil}
         return (name: name, info: value)
@@ -690,7 +690,7 @@ public class OrcaSwap: OrcaSwapType {
 }
 
 // MARK: - Helpers
-private func findAllAvailableRoutes(tokens: OrcaSwap.Tokens, pools: OrcaSwap.Pools) -> OrcaSwap.Routes {
+private func findAllAvailableRoutes(tokens: [String: TokenValue], pools: Pools) -> Routes {
     let tokens = tokens.filter {$0.value.poolToken != true}
         .map {$0.key}
     let pairs = getPairs(tokens: tokens)
@@ -730,8 +730,8 @@ private func orderTokenPair(_ tokenX: String, _ tokenY: String) -> [String] {
     }
 }
 
-private func getAllRoutes(pairs: [[String]], pools: OrcaSwap.Pools) -> OrcaSwap.Routes {
-    var routes: OrcaSwap.Routes = [:]
+private func getAllRoutes(pairs: [[String]], pools: Pools) -> Routes {
+    var routes: Routes = [:]
     pairs.forEach { pair in
         guard let tokenA = pair.first,
               let tokenB = pair.last
@@ -745,8 +745,8 @@ private func getTradeId(_ tokenX: String, _ tokenY: String) -> String {
     orderTokenPair(tokenX, tokenY).joined(separator: "/")
 }
 
-private func getRoutes(tokenA: String, tokenB: String, pools: OrcaSwap.Pools) -> [OrcaSwap.Route] {
-    var routes = [OrcaSwap.Route]()
+private func getRoutes(tokenA: String, tokenB: String, pools: Pools) -> [Route] {
+    var routes = [Route]()
     
     // Find all pools that contain the same tokens.
     // Checking tokenAName and tokenBName will find Stable pools.

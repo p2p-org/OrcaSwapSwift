@@ -14,60 +14,58 @@ private let N_COINS_SQUARED: UInt64 = 4
 private let STABLE = "Stable"
 private let CONSTANT_PRODUCT = "ConstantProduct"
 
-public extension OrcaSwap {
-    struct Pool: Decodable, Equatable {
-        public let account: String
-        public let authority: String
-        let nonce: UInt64
-        public let poolTokenMint: String
-        public var tokenAccountA: String
-        public var tokenAccountB: String
-        public let feeAccount: String
-        let hostFeeAccount: String?
-        let feeNumerator: UInt64
-        let feeDenominator: UInt64
-        let ownerTradeFeeNumerator: UInt64
-        let ownerTradeFeeDenominator: UInt64
-        let ownerWithdrawFeeNumerator: UInt64
-        let ownerWithdrawFeeDenominator: UInt64
-        let hostFeeNumerator: UInt64
-        let hostFeeDenominator: UInt64
-        var tokenAName: String
-        public internal(set) var tokenBName: String
-        let curveType: String
-        let amp: UInt64?
-        let programVersion: UInt64?
-        public let deprecated: Bool?
-        
-        // balance (lazy load)
-        var tokenABalance: SolanaSDK.TokenAccountBalance?
-        var tokenBBalance: SolanaSDK.TokenAccountBalance?
-        
-        var isStable: Bool?
-        
-        var reversed: Pool {
-            var reversedPool = self
-            Swift.swap(&reversedPool.tokenAccountA, &reversedPool.tokenAccountB)
-            Swift.swap(&reversedPool.tokenAName, &reversedPool.tokenBName)
-            Swift.swap(&reversedPool.tokenABalance, &reversedPool.tokenBBalance)
-            return reversedPool
-        }
-        
-        public func getTokenBDecimals() -> SolanaSDK.Decimals? {
-            tokenBBalance?.decimals
-        }
-        
-        public func getTokenADecimals() -> SolanaSDK.Decimals? {
-            tokenABalance?.decimals
-        }
-        
-        public var swapProgramId: SolanaSDK.PublicKey {
-            .orcaSwapId(version: programVersion == 2 ? 2: 1)
-        }
+public struct Pool: Codable, Equatable {
+    public let account: String
+    public let authority: String
+    let nonce: UInt64
+    public let poolTokenMint: String
+    public var tokenAccountA: String
+    public var tokenAccountB: String
+    public let feeAccount: String
+    let hostFeeAccount: String?
+    let feeNumerator: UInt64
+    let feeDenominator: UInt64
+    let ownerTradeFeeNumerator: UInt64
+    let ownerTradeFeeDenominator: UInt64
+    let ownerWithdrawFeeNumerator: UInt64
+    let ownerWithdrawFeeDenominator: UInt64
+    let hostFeeNumerator: UInt64
+    let hostFeeDenominator: UInt64
+    var tokenAName: String
+    public internal(set) var tokenBName: String
+    let curveType: String
+    let amp: UInt64?
+    let programVersion: UInt64?
+    public let deprecated: Bool?
+    
+    // balance (lazy load)
+    var tokenABalance: SolanaSDK.TokenAccountBalance?
+    var tokenBBalance: SolanaSDK.TokenAccountBalance?
+    
+    var isStable: Bool?
+    
+    var reversed: Pool {
+        var reversedPool = self
+        Swift.swap(&reversedPool.tokenAccountA, &reversedPool.tokenAccountB)
+        Swift.swap(&reversedPool.tokenAName, &reversedPool.tokenBName)
+        Swift.swap(&reversedPool.tokenABalance, &reversedPool.tokenBBalance)
+        return reversedPool
+    }
+    
+    public func getTokenBDecimals() -> SolanaSDK.Decimals? {
+        tokenBBalance?.decimals
+    }
+    
+    public func getTokenADecimals() -> SolanaSDK.Decimals? {
+        tokenABalance?.decimals
+    }
+    
+    public var swapProgramId: PublicKey {
+        .orcaSwapId(version: programVersion == 2 ? 2: 1)
     }
 }
 
-extension OrcaSwap.Pool {
+extension Pool {
     // MARK: - Public methods
     public func getMinimumAmountOut(
         inputAmount: UInt64,
@@ -87,13 +85,13 @@ extension OrcaSwap.Pool {
     }
     
     public func createSwapInstruction(
-        userTransferAuthorityPubkey: OrcaSwap.PublicKey,
-        sourceTokenAddress: OrcaSwap.PublicKey,
-        destinationTokenAddress: OrcaSwap.PublicKey,
+        userTransferAuthorityPubkey: PublicKey,
+        sourceTokenAddress: PublicKey,
+        destinationTokenAddress: PublicKey,
         amountIn: UInt64,
         minAmountOut: UInt64
-    ) throws -> SolanaSDK.TransactionInstruction {
-        OrcaSwap.TokenSwapProgram.swapInstruction(
+    ) throws -> TransactionInstruction {
+        TokenSwapProgram.swapInstruction(
             tokenSwap: try account.toPublicKey(),
             authority: try authority.toPublicKey(),
             userTransferAuthority: userTransferAuthorityPubkey,
@@ -199,23 +197,23 @@ extension OrcaSwap.Pool {
     
     /// Construct exchange
     func constructExchange(
-        tokens: OrcaSwap.Tokens,
+        tokens: [String: TokenValue],
         solanaClient: OrcaSwapSolanaClient,
-        owner: OrcaSwap.Account,
+        owner: Account,
         fromTokenPubkey: String,
         toTokenPubkey: String?,
-        amount: OrcaSwap.Lamports,
+        amount: Lamports,
         slippage: Double,
-        feePayer: OrcaSwap.PublicKey?,
-        minRenExemption: OrcaSwap.Lamports
-    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
         guard let fromMint = try? tokens[tokenAName]?.mint.toPublicKey(),
               let toMint = try? tokens[tokenBName]?.mint.toPublicKey(),
               let fromTokenPubkey = try? fromTokenPubkey.toPublicKey()
         else {return .error(OrcaSwapError.notFound)}
         
         // Create fromTokenAccount when needed
-        let prepareSourceRequest: Single<OrcaSwap.AccountInstructions>
+        let prepareSourceRequest: Single<AccountInstructions>
         
         if fromMint == .wrappedSOLMint &&
             owner.publicKey == fromTokenPubkey
@@ -230,7 +228,7 @@ extension OrcaSwap.Pool {
         }
         
         // If necessary, create a TokenAccount for the output token
-        let prepareDestinationRequest: Single<OrcaSwap.AccountInstructions>
+        let prepareDestinationRequest: Single<AccountInstructions>
         
         // If destination token is Solana, create WSOL if needed
         if toMint == .wrappedSOLMint {
@@ -242,7 +240,7 @@ extension OrcaSwap.Pool {
                     .init(
                         account: toTokenPubkey,
                         cleanupInstructions: [
-                            OrcaSwap.TokenProgram.closeAccountInstruction(
+                            TokenProgram.closeAccountInstruction(
                                 account: toTokenPubkey,
                                 destination: owner.publicKey,
                                 owner: owner.publicKey
@@ -283,8 +281,8 @@ extension OrcaSwap.Pool {
             .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
             .map { sourceAccountInstructions, destinationAccountInstructions in
                 // form instructions
-                var instructions = [OrcaSwap.TransactionInstruction]()
-                var cleanupInstructions = [OrcaSwap.TransactionInstruction]()
+                var instructions = [TransactionInstruction]()
+                var cleanupInstructions = [TransactionInstruction]()
                 var accountCreationFee: UInt64 = 0
                 
                 // source
@@ -315,7 +313,7 @@ extension OrcaSwap.Pool {
                 
                 instructions.append(swapInstruction)
                 
-                var signers = [OrcaSwap.Account]()
+                var signers = [Account]()
                 signers.append(contentsOf: sourceAccountInstructions.signers)
                 signers.append(contentsOf: destinationAccountInstructions.signers)
                 

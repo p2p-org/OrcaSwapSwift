@@ -9,21 +9,19 @@ import Foundation
 import RxSwift
 import SolanaSwift
 
-public extension OrcaSwap {
-    typealias Pools = [String: Pool] // [poolId: string]: PoolConfig;
-    typealias PoolsPair = [Pool]
-}
+public typealias Pools = [String: Pool] // [poolId: string]: PoolConfig;
+public typealias PoolsPair = [Pool]
 
 private var balancesCache = [String: SolanaSDK.TokenAccountBalance]()
 private let lock = NSLock()
 
-extension OrcaSwap.Pools {
+extension Pools {
     func getPools(
-        forRoute route: OrcaSwap.Route,
+        forRoute route: Route,
         fromTokenName: String,
         toTokenName: String,
         solanaClient: OrcaSwapSolanaClient
-    ) -> Single<[OrcaSwap.Pool]> {
+    ) -> Single<[Pool]> {
         guard route.count > 0 else {return .just([])}
         
         let requests = route.map {fixedPool(forPath: $0, solanaClient: solanaClient)}
@@ -77,7 +75,7 @@ extension OrcaSwap.Pools {
     private func fixedPool(
         forPath path: String, // Ex. BTC/SOL[aquafarm][stable]
         solanaClient: OrcaSwapSolanaClient
-    ) -> Single<OrcaSwap.Pool?> {
+    ) -> Single<Pool?> {
         guard var pool = self[path] else {return .just(nil)}
         
         if path.contains("[stable]") {
@@ -113,19 +111,19 @@ extension OrcaSwap.Pools {
     }
 }
 
-public extension OrcaSwap.PoolsPair {
+public extension PoolsPair {
     func constructExchange(
-        tokens: OrcaSwap.Tokens,
+        tokens: [String: TokenValue],
         solanaClient: OrcaSwapSolanaClient,
-        owner: OrcaSwap.Account,
+        owner: Account,
         fromTokenPubkey: String,
         intermediaryTokenAddress: String? = nil,
         toTokenPubkey: String?,
-        amount: OrcaSwap.Lamports,
+        amount: Lamports,
         slippage: Double,
-        feePayer: OrcaSwap.PublicKey?,
-        minRenExemption: OrcaSwap.Lamports
-    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
         guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
         
         if count == 1 {
@@ -161,7 +159,7 @@ public extension OrcaSwap.PoolsPair {
                     feePayer: feePayer,
                     minRenExemption: minRenExemption
                 )
-                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> in
+                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(AccountInstructions, Lamports /*account creation fee*/)> in
                     guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
                     else {throw OrcaSwapError.unknown}
                     
@@ -283,7 +281,7 @@ public extension OrcaSwap.PoolsPair {
     func getIntermediaryToken(
         inputAmount: UInt64,
         slippage: Double
-    ) -> OrcaSwap.InterTokenInfo? {
+    ) -> InterTokenInfo? {
         guard count > 1 else {return nil}
         let pool0 = self[0]
         return .init(
@@ -359,10 +357,10 @@ public extension OrcaSwap.PoolsPair {
 }
 
 // MARK: - Helpers
-private func createSolanaAccountAsync(network: SolanaSDK.Network) -> Single<SolanaSDK.Account> {
+private func createSolanaAccountAsync(network: Network) -> Single<Account> {
     .create { observer in
         do {
-            let account = try SolanaSDK.Account(network: network)
+            let account = try Account(network: network)
             observer(.success(account))
         } catch {
             observer(.failure(error))

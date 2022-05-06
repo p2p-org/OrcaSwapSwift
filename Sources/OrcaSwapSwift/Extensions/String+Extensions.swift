@@ -2,7 +2,7 @@ import Foundation
 import SolanaSwift
 
 extension String {
-    func toPublicKey() throws -> SolanaSDK.PublicKey {
-        try SolanaSDK.PublicKey(string: self)
+    func toPublicKey() throws -> PublicKey {
+        try PublicKey(string: self)
     }
 }

@@ -16,12 +16,12 @@ class OrcaSwapPreparationTests: XCTestCase {
     let socnMint = "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm"
     
     let orcaSwap = OrcaSwap(
-        apiClient: OrcaSwap.MockAPIClient(network: "mainnet"),
-        solanaClient: OrcaSwap.MockSolanaClient(),
-        accountProvider: OrcaSwap.MockAccountProvider(),
-        notificationHandler: OrcaSwap.MockSocket()
+        apiClient: MockAPIClient(network: "mainnet"),
+        solanaClient: MockSolanaClient(),
+        accountProvider: MockAccountProvider(),
+        notificationHandler: MockSocket()
     )
-    var swapInfo: OrcaSwap.SwapInfo {
+    var swapInfo: SwapInfo {
         orcaSwap.info!
     }
     
@@ -33,15 +33,15 @@ class OrcaSwapPreparationTests: XCTestCase {
     // MARK: - Swap data
     func testLoadSwap() throws {
 //        print(routes.jsonString!.replacingOccurrences(of: #"\/"#, with: "/"))
-        XCTAssertEqual(swapInfo.routes.count, 1035)
-        XCTAssertEqual(swapInfo.tokens.count, 117)
-        XCTAssertEqual(swapInfo.pools.count, 71)
+        XCTAssertEqual(swapInfo.routes.count, 4950)
+        XCTAssertEqual(swapInfo.tokens.count, 246)
+        XCTAssertEqual(swapInfo.pools.count, 146)
         XCTAssertEqual(swapInfo.programIds.serumTokenSwap, "SwaPpA9LAaLfeLi3a68M4DjnLqgtticKg6CnyNwgAC8")
         XCTAssertEqual(swapInfo.programIds.tokenSwapV2, "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP")
         XCTAssertEqual(swapInfo.programIds.tokenSwap, "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1")
-        XCTAssertEqual(swapInfo.programIds.token, "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+        XCTAssertEqual(swapInfo.programIds.token, .tokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)
         XCTAssertEqual(swapInfo.programIds.aquafarm, "82yxjeMsvaURa4MbZZ7WZZHfobirZYkH1zF8fmeGtyaQ")
-        XCTAssertEqual(swapInfo.tokenNames.count, 117)
+        XCTAssertEqual(swapInfo.tokenNames.count, 246)
     }
     
     func testGetTokenMint() throws {
@@ -51,7 +51,7 @@ class OrcaSwapPreparationTests: XCTestCase {
     // MARK: - Find destinations
     func testFindDestinations() throws {
         let routes = try orcaSwap.findPosibleDestinationMints(fromMint: btcMint)
-        XCTAssertEqual(routes.count, 21)
+        XCTAssertEqual(routes.count, 96)
     }
     
     // MARK: - BTC -> ETH
@@ -71,8 +71,8 @@ class OrcaSwapPreparationTests: XCTestCase {
 //        ]
     func testGetTradablePoolsPairs() throws {
         let pools = try orcaSwap.getTradablePoolsPairs(fromMint: btcMint, toMint: ethMint).toBlocking().first()!
-        XCTAssertEqual(pools.count, 3) //
-        XCTAssertEqual(pools.flatMap { $0 }.count, 5)
+        XCTAssertEqual(pools.count, 5) //
+        XCTAssertEqual(pools.flatMap { $0 }.count, 9)
         
         let btcETHPool = pools.first(where: {$0.count == 1})!.first!
         XCTAssertEqual(btcETHPool.tokenAccountA, "81w3VGbnszMKpUwh9EzAF9LpRzkKxc5XYCW64fuYk1jH")
@@ -130,13 +130,13 @@ class OrcaSwapPreparationTests: XCTestCase {
 //            ]
 //        ]
     func testGetTradablePoolsPairsReversed() throws {
-        let poolsPair = try orcaSwap.getTradablePoolsPairs(fromMint: socnMint, toMint: btcMint).toBlocking().first()!.first!
+        let poolsPair = try orcaSwap.getTradablePoolsPairs(fromMint: socnMint, toMint: btcMint).toBlocking().first()!.sorted(by: {$0.first!.account < $1.first!.account}).first!
         XCTAssertEqual(poolsPair.count, 2) // there is only 1 pair
         
         let socnSOL = poolsPair.first!
         XCTAssertEqual(socnSOL.tokenAccountA, "C8DRXUqxXtUgvgBR7BPAmy6tnRJYgVjG27VU44wWDMNV")
         XCTAssertEqual(socnSOL.tokenAccountB, "DzdxH5qJ68PiM1p5o6PbPLPpDj8m1ZshcaMFATcxDZix")
-        XCTAssertEqual(socnSOL.tokenAName, "SOCN")
+        XCTAssertEqual(socnSOL.tokenAName, "scnSOL")
         XCTAssertEqual(socnSOL.tokenBName, "SOL")
         
         let solBTC = poolsPair.last!
