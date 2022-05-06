@@ -117,15 +117,15 @@ public extension OrcaSwap.PoolsPair {
     func constructExchange(
         tokens: OrcaSwap.Tokens,
         solanaClient: OrcaSwapSolanaClient,
-        owner: OrcaSwap.Account,
+        owner: Account,
         fromTokenPubkey: String,
         intermediaryTokenAddress: String? = nil,
         toTokenPubkey: String?,
-        amount: OrcaSwap.Lamports,
+        amount: Lamports,
         slippage: Double,
-        feePayer: OrcaSwap.PublicKey?,
-        minRenExemption: OrcaSwap.Lamports
-    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
         guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
         
         if count == 1 {
@@ -161,7 +161,7 @@ public extension OrcaSwap.PoolsPair {
                     feePayer: feePayer,
                     minRenExemption: minRenExemption
                 )
-                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> in
+                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(AccountInstructions, Lamports /*account creation fee*/)> in
                     guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
                     else {throw OrcaSwapError.unknown}
                     

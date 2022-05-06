@@ -6,8 +6,8 @@ import PackageDescription
 let package = Package(
     name: "OrcaSwapSwift",
     platforms: [
-        .macOS(.v10_12),
-        .iOS(.v10),
+        .macOS(.v10_15),
+        .iOS(.v13),
         .tvOS(.v10),
         .watchOS(.v3)
     ],
@@ -21,7 +21,7 @@ let package = Package(
         .package(url: "https://github.com/ReactiveX/RxSwift.git", from: "6.2.0"),
         .package(url: "https://github.com/RxSwiftCommunity/RxAlamofire.git",
                              from: "6.1.1"),
-        .package(url: "https://github.com/p2p-org/solana-swift.git", from: "1.3.8")
+        .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3464-blockchain-client")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.

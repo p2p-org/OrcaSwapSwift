@@ -119,9 +119,9 @@ class OrcaSwapSwapTests: XCTestCase {
     }
     
     func closeAssociatedToken(mint: String) throws {
-        let associatedTokenAddress = try SolanaSDK.PublicKey.associatedTokenAddress(
+        let associatedTokenAddress = try PublicKey.associatedTokenAddress(
             walletAddress: solanaSDK.accountStorage.account!.publicKey,
-            tokenMintAddress: try SolanaSDK.PublicKey(string: mint)
+            tokenMintAddress: try PublicKey(string: mint)
         )
         
         let _ = try solanaSDK.closeTokenAccount(
@@ -161,7 +161,7 @@ class OrcaSwapSwapTests: XCTestCase {
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) throws -> Single<OrcaSwap.SwapResponse> {
+    ) throws -> Single<SwapResponse> {
         let bestPoolsPair = try Single.zip(
             bestPoolsPair.map { rawPool -> Single<OrcaSwap.Pool> in
                 var pool = poolsRepository[rawPool.name]!

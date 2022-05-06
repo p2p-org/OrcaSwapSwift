@@ -17,24 +17,24 @@ public protocol OrcaSwapSolanaClient {
     ) -> Single<UInt64>
     
     func checkIfAssociatedTokenAccountExists(
-        owner: SolanaSDK.PublicKey?,
+        owner: PublicKey?,
         mint: String
     ) -> Single<Bool>
     
     func prepareCreatingWSOLAccountAndCloseWhenDone(
-        from owner: OrcaSwap.PublicKey,
-        amount: OrcaSwap.Lamports,
-        payer: OrcaSwap.PublicKey
-    ) -> Single<OrcaSwap.AccountInstructions>
+        from owner: PublicKey,
+        amount: Lamports,
+        payer: PublicKey
+    ) -> Single<AccountInstructions>
     
     func prepareForCreatingAssociatedTokenAccount(
-        owner: OrcaSwap.PublicKey,
-        mint: OrcaSwap.PublicKey,
-        feePayer: OrcaSwap.PublicKey,
+        owner: PublicKey,
+        mint: PublicKey,
+        feePayer: PublicKey,
         closeAfterward: Bool
-    ) -> Single<OrcaSwap.AccountInstructions>
+    ) -> Single<AccountInstructions>
     
-    var endpoint: OrcaSwap.APIEndPoint {get}
+    var endpoint: APIEndPoint {get}
     
     func serializeAndSend(
         preparedTransaction: SolanaSDK.PreparedTransaction,
@@ -42,18 +42,18 @@ public protocol OrcaSwapSolanaClient {
     ) -> Single<String>
     
     func prepareTransaction(
-        instructions: [OrcaSwap.TransactionInstruction],
-        signers: [OrcaSwap.Account],
-        feePayer: OrcaSwap.PublicKey,
-        accountsCreationFee: OrcaSwap.Lamports,
+        instructions: [TransactionInstruction],
+        signers: [Account],
+        feePayer: PublicKey,
+        accountsCreationFee: Lamports,
         recentBlockhash: String?,
-        lamportsPerSignature: OrcaSwap.Lamports?
+        lamportsPerSignature: Lamports?
     ) -> Single<SolanaSDK.PreparedTransaction>
 }
 
 public protocol OrcaSwapAccountProvider {
-    func getAccount() -> OrcaSwap.Account?
-    func getNativeWalletAddress() -> OrcaSwap.PublicKey?
+    func getAccount() -> Account?
+    func getNativeWalletAddress() -> PublicKey?
 }
 
 public protocol OrcaSwapSignatureConfirmationHandler {

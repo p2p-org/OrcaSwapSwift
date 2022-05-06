@@ -19,7 +19,7 @@ public extension OrcaSwap {
     
 //    struct TokenConfig: Decodable {
 //        let token: Token
-//        let mint: SolanaSDK.PublicKey
+//        let mint: PublicKey
 //    }
 //    
 //    typealias TokenConfigs = [String: TokenConfig] // [poolId: string]: TokenConfig;

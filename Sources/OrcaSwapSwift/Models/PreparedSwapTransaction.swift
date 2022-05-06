@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SolanaSwift
 
 extension OrcaSwap {
     public struct PreparedSwapTransaction {

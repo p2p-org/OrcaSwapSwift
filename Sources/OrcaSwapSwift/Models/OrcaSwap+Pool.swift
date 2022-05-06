@@ -61,7 +61,7 @@ public extension OrcaSwap {
             tokenABalance?.decimals
         }
         
-        public var swapProgramId: SolanaSDK.PublicKey {
+        public var swapProgramId: PublicKey {
             .orcaSwapId(version: programVersion == 2 ? 2: 1)
         }
     }
@@ -87,13 +87,13 @@ extension OrcaSwap.Pool {
     }
     
     public func createSwapInstruction(
-        userTransferAuthorityPubkey: OrcaSwap.PublicKey,
-        sourceTokenAddress: OrcaSwap.PublicKey,
-        destinationTokenAddress: OrcaSwap.PublicKey,
+        userTransferAuthorityPubkey: PublicKey,
+        sourceTokenAddress: PublicKey,
+        destinationTokenAddress: PublicKey,
         amountIn: UInt64,
         minAmountOut: UInt64
     ) throws -> SolanaSDK.TransactionInstruction {
-        OrcaSwap.TokenSwapProgram.swapInstruction(
+        TokenSwapProgram.swapInstruction(
             tokenSwap: try account.toPublicKey(),
             authority: try authority.toPublicKey(),
             userTransferAuthority: userTransferAuthorityPubkey,
@@ -105,7 +105,7 @@ extension OrcaSwap.Pool {
             feeAccount: try feeAccount.toPublicKey(),
             hostFeeAccount: try? hostFeeAccount?.toPublicKey(),
             swapProgramId: swapProgramId,
-            tokenProgramId: .tokenProgramId,
+            tokenProgramId: TokenProgram.id,
             amountIn: amountIn,
             minimumAmountOut: minAmountOut
         )
@@ -201,21 +201,21 @@ extension OrcaSwap.Pool {
     func constructExchange(
         tokens: OrcaSwap.Tokens,
         solanaClient: OrcaSwapSolanaClient,
-        owner: OrcaSwap.Account,
+        owner: Account,
         fromTokenPubkey: String,
         toTokenPubkey: String?,
-        amount: OrcaSwap.Lamports,
+        amount: Lamports,
         slippage: Double,
-        feePayer: OrcaSwap.PublicKey?,
-        minRenExemption: OrcaSwap.Lamports
-    ) -> Single<(OrcaSwap.AccountInstructions, OrcaSwap.Lamports /*account creation fee*/)> {
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
         guard let fromMint = try? tokens[tokenAName]?.mint.toPublicKey(),
               let toMint = try? tokens[tokenBName]?.mint.toPublicKey(),
               let fromTokenPubkey = try? fromTokenPubkey.toPublicKey()
         else {return .error(OrcaSwapError.notFound)}
         
         // Create fromTokenAccount when needed
-        let prepareSourceRequest: Single<OrcaSwap.AccountInstructions>
+        let prepareSourceRequest: Single<AccountInstructions>
         
         if fromMint == .wrappedSOLMint &&
             owner.publicKey == fromTokenPubkey
@@ -230,7 +230,7 @@ extension OrcaSwap.Pool {
         }
         
         // If necessary, create a TokenAccount for the output token
-        let prepareDestinationRequest: Single<OrcaSwap.AccountInstructions>
+        let prepareDestinationRequest: Single<AccountInstructions>
         
         // If destination token is Solana, create WSOL if needed
         if toMint == .wrappedSOLMint {
@@ -242,7 +242,7 @@ extension OrcaSwap.Pool {
                     .init(
                         account: toTokenPubkey,
                         cleanupInstructions: [
-                            OrcaSwap.TokenProgram.closeAccountInstruction(
+                            TokenProgram.closeAccountInstruction(
                                 account: toTokenPubkey,
                                 destination: owner.publicKey,
                                 owner: owner.publicKey
@@ -283,8 +283,8 @@ extension OrcaSwap.Pool {
             .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
             .map { sourceAccountInstructions, destinationAccountInstructions in
                 // form instructions
-                var instructions = [OrcaSwap.TransactionInstruction]()
-                var cleanupInstructions = [OrcaSwap.TransactionInstruction]()
+                var instructions = [TransactionInstruction]()
+                var cleanupInstructions = [TransactionInstruction]()
                 var accountCreationFee: UInt64 = 0
                 
                 // source
@@ -315,7 +315,7 @@ extension OrcaSwap.Pool {
                 
                 instructions.append(swapInstruction)
                 
-                var signers = [OrcaSwap.Account]()
+                var signers = [Account]()
                 signers.append(contentsOf: sourceAccountInstructions.signers)
                 signers.append(contentsOf: destinationAccountInstructions.signers)
                 
