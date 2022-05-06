@@ -7,9 +7,8 @@
 
 import Foundation
 
-extension OrcaSwap {
-    public typealias Route = [String]
-    public typealias Routes = [String: [Route]]
+public typealias Route = [String]
+public typealias Routes = [String: [Route]]
     
 //    "FTT/RAY": [
 //            [
@@ -29,4 +28,3 @@ extension OrcaSwap {
 //                "RAY/SOL[aquafarm]"
 //            ]
 //        ]
-}

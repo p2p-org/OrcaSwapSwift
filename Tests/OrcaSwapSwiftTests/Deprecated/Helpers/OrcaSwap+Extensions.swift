@@ -10,8 +10,8 @@ import RxSwift
 @testable import SolanaSwift
 @testable import OrcaSwapSwift
 
-extension OrcaSwap.Pool {
-    func filledWithUpdatedBalances(solanaClient: OrcaSwapSolanaClient) -> Single<OrcaSwap.Pool> {
+extension OrcaSwapSwift.Pool {
+    func filledWithUpdatedBalances(solanaClient: OrcaSwapSolanaClient) -> Single<OrcaSwapSwift.Pool> {
         Single.zip(
             solanaClient.getTokenAccountBalance(pubkey: tokenAccountA, commitment: nil),
             solanaClient.getTokenAccountBalance(pubkey: tokenAccountB, commitment: nil)

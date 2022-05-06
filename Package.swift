@@ -19,8 +19,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveX/RxSwift.git", from: "6.2.0"),
-        .package(url: "https://github.com/RxSwiftCommunity/RxAlamofire.git",
-                             from: "6.1.1"),
         .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3464-blockchain-client")
     ],
     targets: [
@@ -29,7 +27,6 @@ let package = Package(
         .target(
             name: "OrcaSwapSwift",
             dependencies: [
-                "RxAlamofire",
                 .product(name: "SolanaSwift", package: "solana-swift")
             ]
         ),
