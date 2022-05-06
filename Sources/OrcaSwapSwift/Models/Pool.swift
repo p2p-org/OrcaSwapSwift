@@ -39,8 +39,8 @@ public struct Pool: Codable, Equatable {
     public let deprecated: Bool?
     
     // balance (lazy load)
-    var tokenABalance: SolanaSDK.TokenAccountBalance?
-    var tokenBBalance: SolanaSDK.TokenAccountBalance?
+    var tokenABalance: TokenAccountBalance?
+    var tokenBBalance: TokenAccountBalance?
     
     var isStable: Bool?
     
@@ -52,11 +52,11 @@ public struct Pool: Codable, Equatable {
         return reversedPool
     }
     
-    public func getTokenBDecimals() -> SolanaSDK.Decimals? {
+    public func getTokenBDecimals() -> Decimals? {
         tokenBBalance?.decimals
     }
     
-    public func getTokenADecimals() -> SolanaSDK.Decimals? {
+    public func getTokenADecimals() -> Decimals? {
         tokenABalance?.decimals
     }
     
