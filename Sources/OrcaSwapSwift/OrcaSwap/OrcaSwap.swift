@@ -96,25 +96,35 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         toMint: String
     ) async throws -> [PoolsPair] {
         // assertion
-        guard let fromTokenName = getTokenFromMint(fromMint)?.name,
+        guard let info = info,
+              let fromTokenName = getTokenFromMint(fromMint)?.name,
               let toTokenName = getTokenFromMint(toMint)?.name,
               let currentRoutes = try? findRoutes(fromTokenName: fromTokenName, toTokenName: toTokenName)
                 .first?.value
         else { return [] }
         
         // retrieve all routes
-        
-        let requests: [Single<[Pool]>] = currentRoutes.compactMap {
-            guard $0.count <= 2 else {return nil} // FIXME: Support more than 2 paths later
-            return info?.pools.getPools(
-                forRoute: $0,
-                fromTokenName: fromTokenName,
-                toTokenName: toTokenName,
-                solanaClient: solanaClient
-            )
+        var poolsPairs = [PoolsPair]()
+        try await withThrowingTaskGroup(of: [Pool]?.self) {group in
+            for route in currentRoutes where route.count <= 2 {
+                group.addTask { [weak self] in
+                    guard let self = self else {return nil}
+                    return try await info.pools.getPools(
+                        forRoute: route,
+                        fromTokenName: fromTokenName,
+                        toTokenName: toTokenName,
+                        solanaAPIClient: self.solanaClient
+                    )
+                }
+            }
+            
+            for try await pools in group {
+                guard let pools = pools else {continue}
+                poolsPairs.append(pools)
+            }
         }
         
-        return Single.zip(requests)
+        return poolsPairs
     }
     
     /// Find best pool to swap from input amount
