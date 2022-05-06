@@ -207,7 +207,7 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> Single<FeeAmount> {
+    ) async throws -> FeeAmount {
         guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
@@ -237,7 +237,7 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         }
         
         // when there is intermediary token
-        var isIntermediaryTokenCreatedRequest = Single<Bool>.just(true)
+        var isIntermediaryTokenCreated = true
         if numberOfPools == 2,
            let decimals = bestPoolsPair![0].tokenABalance?.decimals,
            let inputAmount = inputAmount,
@@ -256,7 +256,8 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
             
             // Check if intermediary token creation is needed
             else {
-                isIntermediaryTokenCreatedRequest = solanaClient.checkIfAssociatedTokenAccountExists(owner: owner, mint: mint)
+                isIntermediaryTokenCreated = try await solanaClient
+                    .checkIfAssociatedTokenAccountExists(owner: owner, mint: mint)
             }
         }
         
@@ -271,15 +272,12 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
             expectedFee.deposit += minRentExempt
         }
         
-        return isIntermediaryTokenCreatedRequest
-            .map {!$0}
-            .map { needsCreateIntermediaryToken in
-                // Intermediary token needs to be created, so add the fee
-                if needsCreateIntermediaryToken {
-                    expectedFee.accountBalances += minRentExempt
-                }
-                return expectedFee
-            }
+        // add aditional fee if intermediary token is NOT yet created
+        if !isIntermediaryTokenCreated {
+            expectedFee.accountBalances += minRentExempt
+        }
+        
+        return expectedFee
     }
     
     /// Execute swap
@@ -290,15 +288,17 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         amount: Double,
         feePayer: PublicKey?,
         slippage: Double
-    ) -> Single<([PreparedSwapTransaction], String? /*New created account*/)> {
-        guard bestPoolsPair.count > 0 else {return .error(OrcaSwapError.swapInfoMissing)}
+    ) async throws -> ([PreparedSwapTransaction], String? /*New created account*/) {
+        guard bestPoolsPair.count > 0 else {
+            throw OrcaSwapError.swapInfoMissing
+        }
         guard let fromDecimals = bestPoolsPair[0].tokenABalance?.decimals else {
-            return .error(OrcaSwapError.invalidPool)
+            throw OrcaSwapError.invalidPool
         }
         
         let amount = amount.toLamport(decimals: fromDecimals)
         
-        let minRenExemptionRequest = solanaClient.getMinimumBalanceForRentExemption(span: 165)
+        let minRenExemption = try await solanaClient.getMinimumBalanceForRentExemption(span: 165)
         
         if bestPoolsPair.count == 1 {
             return minRenExemptionRequest.flatMap { [weak self] minRenExemption in
