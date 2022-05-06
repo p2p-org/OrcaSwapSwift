@@ -21,7 +21,7 @@ extension Pools {
 //        fromTokenName: String,
 //        toTokenName: String,
 //        solanaClient: OrcaSwapSolanaClient
-//    ) -> Single<[Pool]> {
+//    ) async throws -> [Pool] {
 //        guard route.count > 0 else {return .just([])}
 //        
 //        let requests = route.map {fixedPool(forPath: $0, solanaClient: solanaClient)}
@@ -72,43 +72,39 @@ extension Pools {
 //            }
 //    }
 //    
-//    private func fixedPool(
-//        forPath path: String, // Ex. BTC/SOL[aquafarm][stable]
-//        solanaClient: OrcaSwapSolanaClient
-//    ) -> Single<Pool?> {
-//        guard var pool = self[path] else {return .just(nil)}
-//        
-//        if path.contains("[stable]") {
-//            pool.isStable = true
-//        }
-//        
-//        // get balances
-//        let getBalancesRequest: Single<(TokenAccountBalance, TokenAccountBalance)>
-//        if let tokenABalance = pool.tokenABalance ?? balancesCache[pool.tokenAccountA],
-//           let tokenBBalance = pool.tokenBBalance ?? balancesCache[pool.tokenAccountB]
-//        {
-//            getBalancesRequest = .just((tokenABalance, tokenBBalance))
-//        } else {
-//            getBalancesRequest = Single.zip(
-//                solanaClient.getTokenAccountBalance(pubkey: pool.tokenAccountA, commitment: nil),
-//                solanaClient.getTokenAccountBalance(pubkey: pool.tokenAccountB, commitment: nil)
-//            )
-//        }
-//        
-//        return getBalancesRequest
-//            .do(onSuccess: {
-//                lock.lock()
-//                balancesCache[pool.tokenAccountA] = $0
-//                balancesCache[pool.tokenAccountB] = $1
-//                lock.unlock()
-//            })
-//            .map {tokenABalane, tokenBBalance in
-//                pool.tokenABalance = tokenABalane
-//                pool.tokenBBalance = tokenBBalance
-//                
-//                return pool
-//            }
-//    }
+    private func fixedPool<APIClient: SolanaAPIClient>(
+        forPath path: String, // Ex. BTC/SOL[aquafarm][stable]
+        solanaAPIClient: APIClient
+    ) async throws -> Pool? {
+        guard var pool = self[path] else {return nil}
+        
+        if path.contains("[stable]") {
+            pool.isStable = true
+        }
+        
+        // get balances
+        let (tokenABalance, tokenBBalance): (TokenAccountBalance, TokenAccountBalance)
+        if let tab = pool.tokenABalance ?? balancesCache[pool.tokenAccountA],
+           let tbb = pool.tokenBBalance ?? balancesCache[pool.tokenAccountB]
+        {
+            (tokenABalance, tokenBBalance) = (tab, tbb)
+        } else {
+            (tokenABalance, tokenBBalance) = try await (
+                solanaAPIClient.getTokenAccountBalance(pubkey: pool.tokenAccountA, commitment: nil),
+                solanaAPIClient.getTokenAccountBalance(pubkey: pool.tokenAccountB, commitment: nil)
+            )
+        }
+        
+        lock.lock()
+        balancesCache[pool.tokenAccountA] = tokenABalance
+        balancesCache[pool.tokenAccountB] = tokenBBalance
+        lock.unlock()
+        
+        pool.tokenABalance = tokenABalance
+        pool.tokenBBalance = tokenBBalance
+        
+        return pool
+    }
 }
 
 public extension PoolsPair {
