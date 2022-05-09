@@ -11,6 +11,7 @@ import SolanaSwift
 
 private var cache: SwapInfo?
 
+@available(*, deprecated, renamed: "OrcaSwapTypeV2")
 public protocol OrcaSwapType {
     func load() -> Completable
     func getMint(tokenName: String) -> String?
@@ -51,6 +52,7 @@ public protocol OrcaSwapType {
     ) -> Single<SwapResponse>
 }
 
+@available(*, deprecated, renamed: "OrcaSwapV2")
 public class OrcaSwap: OrcaSwapType {
     // MARK: - Properties
     let apiClient: OrcaSwapAPIClient

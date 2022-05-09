@@ -18,7 +18,6 @@ public class OrcaSwapV2<
     let blockchainClient: BlockchainClient
     let solanaClient: SolanaAPIClient
     let accountProvider: OrcaSwapAccountProvider
-    let notificationHandler: OrcaSwapSignatureConfirmationHandler
     
     var info: SwapInfo?
     private let locker = NSLock()
@@ -28,14 +27,12 @@ public class OrcaSwapV2<
         apiClient: OrcaSwapAPIClientV2,
         solanaClient: SolanaAPIClient,
         blockchainClient: BlockchainClient,
-        accountProvider: OrcaSwapAccountProvider,
-        notificationHandler: OrcaSwapSignatureConfirmationHandler
+        accountProvider: OrcaSwapAccountProvider
     ) {
         self.apiClient = apiClient
         self.solanaClient = solanaClient
         self.blockchainClient = blockchainClient
         self.accountProvider = accountProvider
-        self.notificationHandler = notificationHandler
     }
     
     // MARK: - Methods
