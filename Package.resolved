@@ -77,8 +77,8 @@
         "package": "SolanaSwift",
         "repositoryURL": "https://github.com/p2p-org/solana-swift.git",
         "state": {
-          "branch": "refactor/pwn-3464-blockchain-client",
-          "revision": "0600d2a54bdd5b2cb2970a458911599b72ce8d8c",
+          "branch": "test/quick-merge-for-implementation",
+          "revision": "2c03a96b6552d45b17d6dcd3bdcb4434461351f9",
           "version": null
         }
       },

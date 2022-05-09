@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ReactiveX/RxSwift.git", from: "6.2.0"),
-        .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3464-blockchain-client")
+        .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "test/quick-merge-for-implementation")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.

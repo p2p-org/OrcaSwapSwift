@@ -381,56 +381,63 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
             isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
         )
         
-        if swapTransactions.count == 2 {
-            try await solanaClient.waitForConfirmation(signature: txid)
-            
-            return try await prepareAndSend(
+        if swapTransactions.count <= 1 {
+            return .init(transactionId: txid, newWalletPubkey: newAccount)
+        }
+        
+        else {
+            var statuses = [TransactionStatus]()
+            for try await status in solanaClient.observeSignatureStatus(signature: txid) {
+                statuses.append(status)
+            }
+            print(statuses)
+            // send second transaction anyway
+            let txid2 = try await prepareAndSend(
                 swapTransactions[1],
                 feePayer: owner,
                 isSimulation: isSimulation
             )
+            return .init(transactionId: txid2, newWalletPubkey: newAccount)
         }
         
         
-        
-        
-            .flatMap { [weak self] params in
-                
-                
-                if swapTransactions.count == 2 {
-                    request = request
-                        .flatMapCompletable { [weak self] txid in
-                            guard let self = self else {throw OrcaSwapError.unknown}
-                            return self.notificationHandler.waitForConfirmation(signature: txid)
-                        }
-                        .andThen(
-                            self.prepareAndSend(
-                                swapTransactions[1],
-                                feePayer: owner,
-                                isSimulation: isSimulation
-                            )
-                                .retry { errors in
-                                    errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
-                                        if let error = error as? SolanaError {
-                                            switch error {
-                                            case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
-                                                return .timer(.seconds(1), scheduler: MainScheduler.instance)
-                                            case .transactionError(_, logs: let logs) where logs.contains("Program log: Error: InvalidAccountData"):
-                                                return .timer(.seconds(1), scheduler: MainScheduler.instance)
-                                            default:
-                                                break
-                                            }
-                                        }
-                                        
-                                        return .error(error)
-                                    }
-                                }
-                                .timeout(.seconds(60), scheduler: MainScheduler.instance)
-                        )
-                }
-                return request
-                    .map {.init(transactionId: $0, newWalletPubkey: params.1)}
-            }
+//            .flatMap { [weak self] params in
+//
+//
+//                if swapTransactions.count == 2 {
+//                    request = request
+//                        .flatMapCompletable { [weak self] txid in
+//                            guard let self = self else {throw OrcaSwapError.unknown}
+//                            return self.notificationHandler.waitForConfirmation(signature: txid)
+//                        }
+//                        .andThen(
+//                            self.prepareAndSend(
+//                                swapTransactions[1],
+//                                feePayer: owner,
+//                                isSimulation: isSimulation
+//                            )
+//                                .retry { errors in
+//                                    errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
+//                                        if let error = error as? SolanaError {
+//                                            switch error {
+//                                            case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
+//                                                return .timer(.seconds(1), scheduler: MainScheduler.instance)
+//                                            case .transactionError(_, logs: let logs) where logs.contains("Program log: Error: InvalidAccountData"):
+//                                                return .timer(.seconds(1), scheduler: MainScheduler.instance)
+//                                            default:
+//                                                break
+//                                            }
+//                                        }
+//
+//                                        return .error(error)
+//                                    }
+//                                }
+//                                .timeout(.seconds(60), scheduler: MainScheduler.instance)
+//                        )
+//                }
+//                return request
+//                    .map {.init(transactionId: $0, newWalletPubkey: params.1)}
+//            }
     }
     
     func prepareAndSend(
