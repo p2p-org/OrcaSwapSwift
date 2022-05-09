@@ -577,83 +577,89 @@ public class OrcaSwapV2<
         guard let owner = accountProvider.getAccount(),
               let intermediaryTokenMint = try? info?.tokens[pool0.tokenBName]?.mint.toPublicKey(),
               let destinationMint = try? info?.tokens[pool1.tokenBName]?.mint.toPublicKey()
-        else {return .error(OrcaSwapError.unauthorized)}
+        else { throw OrcaSwapError.unauthorized }
         
-        let requestCreatingIntermediaryToken: Single<AccountInstructions>
+        let createIntermediaryTokenAccountInstructions: AccountInstructions
+        let createDestinationTokenAccountInstructions: AccountInstructions
         
-        if intermediaryTokenMint == .wrappedSOLMint {
-            requestCreatingIntermediaryToken = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
-                from: owner.publicKey,
-                amount: 0,
-                payer: feePayer ?? owner.publicKey
-            )
-        } else {
-            requestCreatingIntermediaryToken = solanaClient.prepareForCreatingAssociatedTokenAccount(
-                owner: owner.publicKey,
-                mint: intermediaryTokenMint,
-                feePayer: feePayer ?? owner.publicKey,
-                closeAfterward: true
-            )
-        }
-        
-        return Single.zip(
-            requestCreatingIntermediaryToken,
-            solanaClient.prepareForCreatingAssociatedTokenAccount(
+        async let createDestinationTokenAccountInstructionsRequest = blockchainClient
+            .prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: destinationMint,
                 feePayer: feePayer ?? owner.publicKey,
                 closeAfterward: false
             )
-        )
-            .map { intAccountInstructions, desAccountInstructions -> (PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?) in
-                // get all creating instructions, PASS WSOL ACCOUNT INSTRUCTIONS TO THE SECOND TRANSACTION
-                var instructions = [TransactionInstruction]()
-                var wsolAccountInstructions: AccountInstructions?
-                var accountCreationFee: UInt64 = 0
-                
-                if intermediaryTokenMint == .wrappedSOLMint {
-                    wsolAccountInstructions = intAccountInstructions
-                    wsolAccountInstructions?.cleanupInstructions = []
-                } else {
-                    instructions.append(contentsOf: intAccountInstructions.instructions)
-                    if !intAccountInstructions.instructions.isEmpty {
-                        accountCreationFee += minRenExemption
-                    }
-                    // omit clean up instructions
-                }
-                if destinationMint == .wrappedSOLMint {
-                    wsolAccountInstructions = desAccountInstructions
-                } else {
-                    instructions.append(contentsOf: desAccountInstructions.instructions)
-                    if !desAccountInstructions.instructions.isEmpty {
-                        accountCreationFee += minRenExemption
-                    }
-                }
-                
-                // if token address has already been created, then no need to send any transactions
-                if instructions.isEmpty {
-                    return (
-                        intAccountInstructions.account,
-                        desAccountInstructions.account,
-                        wsolAccountInstructions,
-                        nil
-                    )
-                }
-                
-                // if creating transaction is needed
-                else {
-                    return (
-                        intAccountInstructions.account,
-                        desAccountInstructions.account,
-                        wsolAccountInstructions,
-                        .init(
-                            instructions: instructions,
-                            signers: [owner],
-                            accountCreationFee: accountCreationFee
-                        )
-                    )
-                }
+        
+        if intermediaryTokenMint == .wrappedSOLMint {
+            (createIntermediaryTokenAccountInstructions, createDestinationTokenAccountInstructions) = try await (
+                blockchainClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                    from: owner.publicKey,
+                    amount: 0,
+                    payer: feePayer ?? owner.publicKey,
+                    minRentExemption: nil
+                ),
+                createDestinationTokenAccountInstructionsRequest
+            )
+        } else {
+            
+            (createIntermediaryTokenAccountInstructions, createDestinationTokenAccountInstructions) = try await (
+                blockchainClient.prepareForCreatingAssociatedTokenAccount(
+                    owner: owner.publicKey,
+                    mint: intermediaryTokenMint,
+                    feePayer: feePayer ?? owner.publicKey,
+                    closeAfterward: true
+                ),
+                createDestinationTokenAccountInstructionsRequest
+            )
+        }
+        
+        // get all creating instructions, PASS WSOL ACCOUNT INSTRUCTIONS TO THE SECOND TRANSACTION
+        var instructions = [TransactionInstruction]()
+        var wsolAccountInstructions: AccountInstructions?
+        var accountCreationFee: UInt64 = 0
+        
+        if intermediaryTokenMint == .wrappedSOLMint {
+            wsolAccountInstructions = createIntermediaryTokenAccountInstructions
+            wsolAccountInstructions?.cleanupInstructions = []
+        } else {
+            instructions.append(contentsOf: createIntermediaryTokenAccountInstructions.instructions)
+            if !createIntermediaryTokenAccountInstructions.instructions.isEmpty {
+                accountCreationFee += minRenExemption
             }
+            // omit clean up instructions
+        }
+        if destinationMint == .wrappedSOLMint {
+            wsolAccountInstructions = createDestinationTokenAccountInstructions
+        } else {
+            instructions.append(contentsOf: createDestinationTokenAccountInstructions.instructions)
+            if !createDestinationTokenAccountInstructions.instructions.isEmpty {
+                accountCreationFee += minRenExemption
+            }
+        }
+        
+        // if token address has already been created, then no need to send any transactions
+        if instructions.isEmpty {
+            return (
+                createIntermediaryTokenAccountInstructions.account,
+                createDestinationTokenAccountInstructions.account,
+                wsolAccountInstructions,
+                nil
+            )
+        }
+        
+        // if creating transaction is needed
+        else {
+            return (
+                createIntermediaryTokenAccountInstructions.account,
+                createDestinationTokenAccountInstructions.account,
+                wsolAccountInstructions,
+                .init(
+                    instructions: instructions,
+                    signers: [owner],
+                    accountCreationFee: accountCreationFee
+                )
+            )
+        }
     }
 }
 
