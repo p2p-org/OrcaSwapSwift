@@ -153,7 +153,7 @@ class OrcaSwapPreparationTests: XCTestCase {
         let estimatedAmount2: UInt64 = 1000000 // 1 BTC
         let bestPoolsPair2 = try orcaSwap.findBestPoolsPairForEstimatedAmount(estimatedAmount2, from: poolsPairs)
         let inputAmount2 = bestPoolsPair2?.getInputAmount(fromEstimatedAmount: estimatedAmount2)
-        XCTAssertEqual(inputAmount2, 413909257520) // 413.909257520 BTC
+        XCTAssertEqual(inputAmount2, 413909257520) // 413.909257520 SOCN
     }
 }
 
