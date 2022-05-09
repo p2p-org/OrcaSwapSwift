@@ -116,9 +116,9 @@ extension Pools {
 }
 
 public extension PoolsPair {
-    func constructExchange<APIClient: SolanaAPIClient>(
+    func constructExchange<BlockchainClient: SolanaBlockchainClient>(
         tokens: [String: TokenValue],
-        solanaClient: APIClient,
+        blockchainClient: BlockchainClient,
         owner: Account,
         fromTokenPubkey: String,
         intermediaryTokenAddress: String? = nil,
@@ -134,7 +134,7 @@ public extension PoolsPair {
             // direct swap
             return try await self[0].constructExchange(
                 tokens: tokens,
-                solanaClient: solanaClient,
+                blockchainClient: blockchainClient,
                 owner: owner,
                 fromTokenPubkey: fromTokenPubkey,
                 toTokenPubkey: toTokenPubkey,
@@ -157,7 +157,7 @@ public extension PoolsPair {
             // first construction
             let (pool0AccountInstructions, pool0AccountCreationFee) = try await self[0].constructExchange(
                 tokens: tokens,
-                solanaClient: solanaClient,
+                blockchainClient: blockchainClient,
                 owner: owner,
                 fromTokenPubkey: fromTokenPubkey,
                 toTokenPubkey: intermediaryTokenAddress,
@@ -169,7 +169,7 @@ public extension PoolsPair {
 
             let (pool1AccountInstructions, pool1AccountCreationFee) = try await self[1].constructExchange(
                 tokens: tokens,
-                solanaClient: solanaClient,
+                blockchainClient: blockchainClient,
                 owner: owner,
                 fromTokenPubkey: intermediaryTokenAddress,
                 toTokenPubkey: toTokenPubkey,

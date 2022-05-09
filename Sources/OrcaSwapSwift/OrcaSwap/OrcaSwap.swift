@@ -498,7 +498,7 @@ public class OrcaSwapV2<
         
         let (accountInstructions, accountCreationFee) = try await [pool].constructExchange(
             tokens: info.tokens,
-            solanaClient: self.solanaClient,
+            blockchainClient: blockchainClient,
             owner: owner,
             fromTokenPubkey: fromTokenPubkey,
             toTokenPubkey: toTokenPubkey,
@@ -536,7 +536,7 @@ public class OrcaSwapV2<
         
         var (accountInstructions, accountCreationFee) = try await [pool0, pool1].constructExchange(
             tokens: info.tokens,
-            solanaClient: solanaClient,
+            blockchainClient: blockchainClient,
             owner: owner,
             fromTokenPubkey: fromTokenPubkey,
             intermediaryTokenAddress: intermediaryTokenAddress,
