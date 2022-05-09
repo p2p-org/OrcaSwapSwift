@@ -25,5 +25,5 @@ TODO: Add long description of the pod here.
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
   # s.frameworks = 'UIKit', 'MapKit'
-  s.dependency 'SolanaSwift', '~> 1.3.8'
+  s.dependency 'SolanaSwift', '~> 2.0.0'
 end
