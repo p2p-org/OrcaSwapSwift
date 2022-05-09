@@ -8,10 +8,14 @@
 import Foundation
 import SolanaSwift
 
-public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapTypeV2 {
+public class OrcaSwapV2<
+    SolanaAPIClient: SolanaSwift.SolanaAPIClient,
+    BlockchainClient: SolanaSwift.SolanaBlockchainClient
+>: OrcaSwapTypeV2 {
     // MARK: - Properties
     private var cache: SwapInfo?
     let apiClient: OrcaSwapAPIClientV2
+    let blockchainClient: BlockchainClient
     let solanaClient: SolanaAPIClient
     let accountProvider: OrcaSwapAccountProvider
     let notificationHandler: OrcaSwapSignatureConfirmationHandler
@@ -23,11 +27,13 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
     public init(
         apiClient: OrcaSwapAPIClientV2,
         solanaClient: SolanaAPIClient,
+        blockchainClient: BlockchainClient,
         accountProvider: OrcaSwapAccountProvider,
         notificationHandler: OrcaSwapSignatureConfirmationHandler
     ) {
         self.apiClient = apiClient
         self.solanaClient = solanaClient
+        self.blockchainClient = blockchainClient
         self.accountProvider = accountProvider
         self.notificationHandler = notificationHandler
     }
@@ -427,21 +433,20 @@ public class OrcaSwapV2<SolanaAPIClient: SolanaSwift.SolanaAPIClient>: OrcaSwapT
         feePayer: PublicKey,
         isSimulation: Bool
     ) async throws -> String {
-        solanaClient.prepareTransaction(
+        let preparedTransaction = try await blockchainClient.prepareTransaction(
             instructions: swapTransaction.instructions,
             signers: swapTransaction.signers,
             feePayer: feePayer,
-            accountsCreationFee: swapTransaction.accountCreationFee,
             recentBlockhash: nil,
-            lamportsPerSignature: nil
+            feeCalculator: nil
         )
-            .flatMap { [weak self] preparedTransaction in
-                guard let self = self else {throw OrcaSwapError.unknown}
-                return self.solanaClient.serializeAndSend(
-                    preparedTransaction: preparedTransaction,
-                    isSimulation: isSimulation
-                )
-            }
+        
+        if isSimulation {
+            let _ = try await blockchainClient.simulateTransaction(preparedTransaction: preparedTransaction)
+            return ""
+        }
+        
+        return try await blockchainClient.sendTransaction(preparedTransaction: preparedTransaction)
     }
     
     /// Find routes for from and to token name, aka symbol
