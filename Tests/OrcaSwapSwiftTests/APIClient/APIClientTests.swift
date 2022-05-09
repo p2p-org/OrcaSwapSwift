@@ -6,17 +6,17 @@ class APIClientTests: XCTestCase {
 
     func testRetrievingTokens() async throws {
         let tokens = try await client.getTokens()
-        XCTAssertNotEqual(tokens.count, 0)
+        XCTAssertEqual(tokens.count, 246)
     }
     
     func testRetrievingAquafarms() async throws {
         let aquafarms = try await client.getAquafarms()
-        XCTAssertNotEqual(aquafarms.count, 0)
+        XCTAssertEqual(aquafarms.count, 127)
     }
     
     func testRetrievingPools() async throws {
         let pools = try await client.getPools()
-        XCTAssertNotEqual(pools.count, 0)
+        XCTAssertEqual(pools.count, 146)
     }
     
     func testRetrievingProgramId() async throws {
