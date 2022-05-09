@@ -15,7 +15,7 @@ import RxBlocking
 
 class OrcaSwapAPIClientTests: XCTestCase {
     private let client = APIClient(network: "mainnet-beta")
-    
+
     func testRetrievingTokens() throws {
         let tokens = try client.getTokens().toBlocking().first()
         XCTAssertNotEqual(tokens?.count, 0)
