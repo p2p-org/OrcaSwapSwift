@@ -19,7 +19,7 @@ let orcaSwap = OrcaSwap(
 * Swap
 ```swift
 // load any dependencies for swap to work
-orcaSwap.load()
+try await orcaSwap.load()
 
 // find any destination that can be swapped to from a defined token mint
 orcaSwap.findPosibleDestinationMints(fromMint: btcMint)
@@ -32,7 +32,7 @@ orcaSwap.findBestPoolsPairForInputAmount(inputAmount, from: poolsPairs)
 orcaSwap.findBestPoolsPairForEstimatedAmount(estimatedAmount, from: poolsPairs)
 
 // swap
-orcaSwap.swap(
+let result = try await orcaSwap.swap(
     fromWalletPubkey: <BTC wallet>,
     toWalletPubkey: <ETH wallet>?,
     bestPoolsPair: <best pool pair>,
@@ -40,10 +40,6 @@ orcaSwap.swap(
     slippage: 0.05,
     isSimulation: false
 )
-    .subscribe(onNext: {result in
-        print(result)
-    })
-    .disposed(by: disposeBag)
 ```
 
 ## Unit testing
