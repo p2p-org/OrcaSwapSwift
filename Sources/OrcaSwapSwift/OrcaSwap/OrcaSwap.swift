@@ -10,14 +10,14 @@ import SolanaSwift
 
 public class OrcaSwapV2<
     SolanaAPIClient: SolanaSwift.SolanaAPIClient,
-    BlockchainClient: SolanaSwift.SolanaBlockchainClient
+    BlockchainClient: SolanaBlockchainClient
 >: OrcaSwapTypeV2 {
     // MARK: - Properties
     private var cache: SwapInfo?
     let apiClient: OrcaSwapAPIClientV2
     let blockchainClient: BlockchainClient
     let solanaClient: SolanaAPIClient
-    let accountProvider: OrcaSwapAccountProvider
+    let accountStorage: SolanaAccountStorage
     
     var info: SwapInfo?
     private let locker = NSLock()
@@ -27,12 +27,12 @@ public class OrcaSwapV2<
         apiClient: OrcaSwapAPIClientV2,
         solanaClient: SolanaAPIClient,
         blockchainClient: BlockchainClient,
-        accountProvider: OrcaSwapAccountProvider
+        accountStorage: SolanaAccountStorage
     ) {
         self.apiClient = apiClient
         self.solanaClient = solanaClient
         self.blockchainClient = blockchainClient
-        self.accountProvider = accountProvider
+        self.accountStorage = accountStorage
     }
     
     // MARK: - Methods
@@ -211,7 +211,7 @@ public class OrcaSwapV2<
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
     ) async throws -> FeeAmount {
-        guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
+        guard let owner = try? accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
         var numberOfTransactions: UInt64 = 1
@@ -363,7 +363,7 @@ public class OrcaSwapV2<
         slippage: Double,
         isSimulation: Bool
     ) async throws -> SwapResponse {
-        guard let owner = accountProvider.getAccount()?.publicKey else {throw OrcaSwapError.unauthorized}
+        guard let owner = try? accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
         
         let (swapTransactions, newAccount) = try await prepareForSwapping(
             fromWalletPubkey: fromWalletPubkey,
@@ -490,7 +490,7 @@ public class OrcaSwapV2<
         slippage: Double,
         minRenExemption: Lamports
     ) async throws -> (PreparedSwapTransaction, String?) {
-        guard let owner = accountProvider.getAccount() else { throw OrcaSwapError.unauthorized }
+        guard let owner = try? accountStorage.account else { throw OrcaSwapError.unauthorized }
         guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
         let (accountInstructions, accountCreationFee) = try await [pool].constructExchange(
@@ -528,7 +528,7 @@ public class OrcaSwapV2<
         slippage: Double,
         minRenExemption: Lamports
     ) async throws -> (PreparedSwapTransaction, String?) {
-        guard let owner = accountProvider.getAccount() else { throw OrcaSwapError.unauthorized }
+        guard let owner = try? accountStorage.account else { throw OrcaSwapError.unauthorized }
         guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
         var (accountInstructions, accountCreationFee) = try await [pool0, pool1].constructExchange(
@@ -571,7 +571,7 @@ public class OrcaSwapV2<
         minRenExemption: Lamports
     ) async throws -> (PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?) /*intermediaryTokenAddress, destination token address, WSOL account and instructions, account creation fee*/ {
         
-        guard let owner = accountProvider.getAccount(),
+        guard let owner = try? accountStorage.account,
               let intermediaryTokenMint = try? info?.tokens[pool0.tokenBName]?.mint.toPublicKey(),
               let destinationMint = try? info?.tokens[pool1.tokenBName]?.mint.toPublicKey()
         else { throw OrcaSwapError.unauthorized }

@@ -52,11 +52,13 @@ public protocol OrcaSwapSolanaClient {
     ) -> Single<PreparedTransaction>
 }
 
+@available(*, deprecated, message: "Use SolanaSwift.SolanaAccountStorage instead")
 public protocol OrcaSwapAccountProvider {
     func getAccount() -> Account?
     func getNativeWalletAddress() -> PublicKey?
 }
 
+@available(*, deprecated)
 public protocol OrcaSwapSignatureConfirmationHandler {
     func waitForConfirmation(signature: String) -> Completable
 }

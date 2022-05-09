@@ -14,7 +14,7 @@ class OrcaSwapPreparationTests: XCTestCase {
     }
     
     override func setUp() async throws {
-        let solanaAPIClient = JSONRPCAPIClient(endpoint: .init(address: "", network: .mainnetBeta), networkManager: <#T##NetworkManager#>)
+        let solanaAPIClient = JSONRPCAPIClient(endpoint: .init(address: "", network: .mainnetBeta))
         let blockchainClient = BlockchainClient(apiClient: solanaAPIClient)
         orcaSwap = OrcaSwapV2(
             apiClient: APIClientV2(configsProvider: MockConfigsProvider()),
