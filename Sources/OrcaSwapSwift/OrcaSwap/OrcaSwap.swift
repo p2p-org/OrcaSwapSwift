@@ -20,7 +20,8 @@ public class OrcaSwapV2<
     let accountStorage: SolanaAccountStorage
     
     var info: SwapInfo?
-    private let locker = NSLock()
+    var balancesCache = [String: TokenAccountBalance]()
+    let locker = NSLock()
     
     // MARK: - Initializer
     public init(
@@ -99,8 +100,7 @@ public class OrcaSwapV2<
         toMint: String
     ) async throws -> [PoolsPair] {
         // assertion
-        guard let info = info,
-              let fromTokenName = getTokenFromMint(fromMint)?.name,
+        guard let fromTokenName = getTokenFromMint(fromMint)?.name,
               let toTokenName = getTokenFromMint(toMint)?.name,
               let currentRoutes = try? findRoutes(fromTokenName: fromTokenName, toTokenName: toTokenName)
                 .first?.value
@@ -112,11 +112,10 @@ public class OrcaSwapV2<
             for route in currentRoutes where route.count <= 2 {
                 group.addTask { [weak self] in
                     guard let self = self else {return nil}
-                    return try await info.pools.getPools(
+                    return try await self.getPools(
                         forRoute: route,
                         fromTokenName: fromTokenName,
-                        toTokenName: toTokenName,
-                        solanaAPIClient: self.solanaClient
+                        toTokenName: toTokenName
                     )
                 }
             }
