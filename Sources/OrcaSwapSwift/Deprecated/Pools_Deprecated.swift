@@ -108,6 +108,215 @@ extension Pools {
     }
 }
 
+public extension PoolsPair {
+    func constructExchange(
+        tokens: [String: TokenValue],
+        solanaClient: OrcaSwapSolanaClient,
+        owner: Account,
+        fromTokenPubkey: String,
+        intermediaryTokenAddress: String? = nil,
+        toTokenPubkey: String?,
+        amount: Lamports,
+        slippage: Double,
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
+        guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
+        
+        if count == 1 {
+            // direct swap
+            return self[0]
+                .constructExchange(
+                    tokens: tokens,
+                    solanaClient: solanaClient,
+                    owner: owner,
+                    fromTokenPubkey: fromTokenPubkey,
+                    toTokenPubkey: toTokenPubkey,
+                    amount: amount,
+                    slippage: slippage,
+                    feePayer: feePayer,
+                    minRenExemption: minRenExemption
+                )
+                .map {($0.0, $0.1)}
+        } else {
+            // transitive swap
+            guard let intermediaryTokenAddress = intermediaryTokenAddress else {
+                return .error(OrcaSwapError.intermediaryTokenAddressNotFound)
+            }
+
+            return self[0]
+                .constructExchange(
+                    tokens: tokens,
+                    solanaClient: solanaClient,
+                    owner: owner,
+                    fromTokenPubkey: fromTokenPubkey,
+                    toTokenPubkey: intermediaryTokenAddress,
+                    amount: amount,
+                    slippage: slippage,
+                    feePayer: feePayer,
+                    minRenExemption: minRenExemption
+                )
+                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(AccountInstructions, Lamports /*account creation fee*/)> in
+                    guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
+                    else {throw OrcaSwapError.unknown}
+                    
+                    return self[1].constructExchange(
+                        tokens: tokens,
+                        solanaClient: solanaClient,
+                        owner: owner,
+                        fromTokenPubkey: intermediaryTokenAddress,
+                        toTokenPubkey: toTokenPubkey,
+                        amount: amount,
+                        slippage: slippage,
+                        feePayer: feePayer,
+                        minRenExemption: minRenExemption
+                    )
+                        .map {pool1AccountInstructions, pool1AccountCreationFee in
+                            (.init(
+                                account: pool1AccountInstructions.account,
+                                instructions: pool0AccountInstructions.instructions + pool1AccountInstructions.instructions,
+                                cleanupInstructions: pool0AccountInstructions.cleanupInstructions + pool1AccountInstructions.cleanupInstructions,
+                                signers: pool0AccountInstructions.signers + pool1AccountInstructions.signers
+                            ), pool0AccountCreationFee + pool1AccountCreationFee)
+                        }
+                }
+                .map {($0.0, $0.1)}
+        }
+    }
+}
+
+extension Pool {
+    func constructExchange(
+        tokens: [String: TokenValue],
+        solanaClient: OrcaSwapSolanaClient,
+        owner: Account,
+        fromTokenPubkey: String,
+        toTokenPubkey: String?,
+        amount: Lamports,
+        slippage: Double,
+        feePayer: PublicKey?,
+        minRenExemption: Lamports
+    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
+        guard let fromMint = try? tokens[tokenAName]?.mint.toPublicKey(),
+              let toMint = try? tokens[tokenBName]?.mint.toPublicKey(),
+              let fromTokenPubkey = try? fromTokenPubkey.toPublicKey()
+        else {return .error(OrcaSwapError.notFound)}
+        
+        // Create fromTokenAccount when needed
+        let prepareSourceRequest: Single<AccountInstructions>
+        
+        if fromMint == .wrappedSOLMint &&
+            owner.publicKey == fromTokenPubkey
+        {
+            prepareSourceRequest = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                from: owner.publicKey,
+                amount: amount,
+                payer: feePayer ?? owner.publicKey
+            )
+        } else {
+            prepareSourceRequest = .just(.init(account: fromTokenPubkey))
+        }
+        
+        // If necessary, create a TokenAccount for the output token
+        let prepareDestinationRequest: Single<AccountInstructions>
+        
+        // If destination token is Solana, create WSOL if needed
+        if toMint == .wrappedSOLMint {
+            if let toTokenPubkey = try? toTokenPubkey?.toPublicKey(),
+               toTokenPubkey != owner.publicKey
+            {
+                // wrapped sol has already been created, just return it, then close later
+                prepareDestinationRequest = .just(
+                    .init(
+                        account: toTokenPubkey,
+                        cleanupInstructions: [
+                            TokenProgram.closeAccountInstruction(
+                                account: toTokenPubkey,
+                                destination: owner.publicKey,
+                                owner: owner.publicKey
+                            )
+                        ]
+                    )
+                )
+            } else {
+                // create wrapped sol
+                prepareDestinationRequest = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                    from: owner.publicKey,
+                    amount: 0,
+                    payer: feePayer ?? owner.publicKey
+                )
+            }
+        }
+        
+        // If destination is another token and has already been created
+        else if let toTokenPubkey = try? toTokenPubkey?.toPublicKey() {
+            prepareDestinationRequest = .just(.init(account: toTokenPubkey))
+        }
+        
+        // Create associated token address
+        else {
+            prepareDestinationRequest = solanaClient.prepareForCreatingAssociatedTokenAccount(
+                owner: owner.publicKey,
+                mint: toMint,
+                feePayer: feePayer ?? owner.publicKey,
+                closeAfterward: false
+            )
+        }
+        
+        // Combine request
+        return Single.zip(
+            prepareSourceRequest,
+            prepareDestinationRequest
+        )
+            .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
+            .map { sourceAccountInstructions, destinationAccountInstructions in
+                // form instructions
+                var instructions = [TransactionInstruction]()
+                var cleanupInstructions = [TransactionInstruction]()
+                var accountCreationFee: UInt64 = 0
+                
+                // source
+                instructions.append(contentsOf: sourceAccountInstructions.instructions)
+                cleanupInstructions.append(contentsOf: sourceAccountInstructions.cleanupInstructions)
+                if !sourceAccountInstructions.instructions.isEmpty {
+                    accountCreationFee += minRenExemption
+                }
+                
+                // destination
+                instructions.append(contentsOf: destinationAccountInstructions.instructions)
+                cleanupInstructions.append(contentsOf: destinationAccountInstructions.cleanupInstructions)
+                if !destinationAccountInstructions.instructions.isEmpty {
+                    accountCreationFee += minRenExemption
+                }
+                
+                // swap instructions
+                guard let minAmountOut = try? getMinimumAmountOut(inputAmount: amount, slippage: slippage)
+                else {throw OrcaSwapError.couldNotEstimatedMinimumOutAmount}
+                
+                let swapInstruction = try createSwapInstruction(
+                    userTransferAuthorityPubkey: owner.publicKey,
+                    sourceTokenAddress: sourceAccountInstructions.account,
+                    destinationTokenAddress: destinationAccountInstructions.account,
+                    amountIn: amount,
+                    minAmountOut: minAmountOut
+                )
+                
+                instructions.append(swapInstruction)
+                
+                var signers = [Account]()
+                signers.append(contentsOf: sourceAccountInstructions.signers)
+                signers.append(contentsOf: destinationAccountInstructions.signers)
+                
+                return (.init(
+                    account: destinationAccountInstructions.account,
+                    instructions: instructions,
+                    cleanupInstructions: cleanupInstructions,
+                    signers: signers
+                ), accountCreationFee)
+            }
+    }
+}
+
 private extension String {
     /// Convert  SOL[aquafarm] to SOL
     var fixedTokenName: String {

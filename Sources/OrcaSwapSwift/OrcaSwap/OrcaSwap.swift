@@ -493,31 +493,29 @@ public class OrcaSwapV2<
         slippage: Double,
         minRenExemption: Lamports
     ) async throws -> (PreparedSwapTransaction, String?) {
-        guard let owner = accountProvider.getAccount() else {return .error(OrcaSwapError.unauthorized)}
-        guard let info = info else {return .error(OrcaSwapError.swapInfoMissing)}
+        guard let owner = accountProvider.getAccount() else { throw OrcaSwapError.unauthorized }
+        guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
-        return [pool]
-            .constructExchange(
-                tokens: info.tokens,
-                solanaClient: self.solanaClient,
-                owner: owner,
-                fromTokenPubkey: fromTokenPubkey,
-                toTokenPubkey: toTokenPubkey,
-                amount: amount,
-                slippage: slippage,
-                feePayer: feePayer,
-                minRenExemption: minRenExemption
-            )
-            .map {accountInstructions, accountCreationFee in
-                (
-                    .init(
-                        instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
-                        signers: [owner] + accountInstructions.signers,
-                        accountCreationFee: accountCreationFee
-                    ),
-                    toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil
-                 )
-            }
+        let (accountInstructions, accountCreationFee) = try await [pool].constructExchange(
+            tokens: info.tokens,
+            solanaClient: self.solanaClient,
+            owner: owner,
+            fromTokenPubkey: fromTokenPubkey,
+            toTokenPubkey: toTokenPubkey,
+            amount: amount,
+            slippage: slippage,
+            feePayer: feePayer,
+            minRenExemption: minRenExemption
+        )
+        
+        return (
+            .init(
+                instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
+                signers: [owner] + accountInstructions.signers,
+                accountCreationFee: accountCreationFee
+            ),
+            toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil
+        )
     }
     
     private func transitiveSwap(
@@ -533,43 +531,39 @@ public class OrcaSwapV2<
         slippage: Double,
         minRenExemption: Lamports
     ) async throws -> (PreparedSwapTransaction, String?) {
-        guard let owner = accountProvider.getAccount() else {return .error(OrcaSwapError.unauthorized)}
-        guard let info = info else {return .error(OrcaSwapError.swapInfoMissing)}
+        guard let owner = accountProvider.getAccount() else { throw OrcaSwapError.unauthorized }
+        guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
-        return [pool0, pool1]
-            .constructExchange(
-                tokens: info.tokens,
-                solanaClient: solanaClient,
-                owner: owner,
-                fromTokenPubkey: fromTokenPubkey,
-                intermediaryTokenAddress: intermediaryTokenAddress,
-                toTokenPubkey: destinationTokenAddress,
-                amount: amount,
-                slippage: slippage,
-                feePayer: feePayer,
-                minRenExemption: minRenExemption
-            )
-            .map { accountInstructions, accountCreationFee in
-                var accountCreationFee = accountCreationFee
-                
-                var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
-                var additionalSigners = [Account]()
-                if let wsolAccountInstructions = wsolAccountInstructions {
-                    additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
-                    instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
-                    instructions.append(contentsOf: wsolAccountInstructions.cleanupInstructions)
-                    accountCreationFee += minRenExemption
-                }
-                
-                return (
-                    .init(
-                        instructions: instructions,
-                        signers: [owner] + additionalSigners + accountInstructions.signers,
-                        accountCreationFee: accountCreationFee
-                    ),
-                    isDestinationNew ? accountInstructions.account.base58EncodedString: nil
-                )
-            }
+        var (accountInstructions, accountCreationFee) = try await [pool0, pool1].constructExchange(
+            tokens: info.tokens,
+            solanaClient: solanaClient,
+            owner: owner,
+            fromTokenPubkey: fromTokenPubkey,
+            intermediaryTokenAddress: intermediaryTokenAddress,
+            toTokenPubkey: destinationTokenAddress,
+            amount: amount,
+            slippage: slippage,
+            feePayer: feePayer,
+            minRenExemption: minRenExemption
+        )
+        
+        var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
+        var additionalSigners = [Account]()
+        if let wsolAccountInstructions = wsolAccountInstructions {
+            additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
+            instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
+            instructions.append(contentsOf: wsolAccountInstructions.cleanupInstructions)
+            accountCreationFee += minRenExemption
+        }
+        
+        return (
+            .init(
+                instructions: instructions,
+                signers: [owner] + additionalSigners + accountInstructions.signers,
+                accountCreationFee: accountCreationFee
+            ),
+            isDestinationNew ? accountInstructions.account.base58EncodedString: nil
+        )
     }
     
     private func createIntermediaryTokenAndDestinationTokenAddressIfNeeded(
@@ -736,7 +730,7 @@ private func getRoutes(tokenA: String, tokenB: String, pools: Pools) -> [Route] 
     let firstLegPools = pools
         .filter {
             ($0.value.tokenAName == tokenA && $0.value.tokenBName != tokenB) ||
-                ($0.value.tokenBName == tokenA && $0.value.tokenAName != tokenB)
+            ($0.value.tokenBName == tokenA && $0.value.tokenAName != tokenB)
         }
         .reduce([String: String]()) { result, pool in
             var result = result
