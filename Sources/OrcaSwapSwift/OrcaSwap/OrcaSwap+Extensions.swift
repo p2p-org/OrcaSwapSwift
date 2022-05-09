@@ -75,8 +75,8 @@ extension OrcaSwapV2 {
         
         // get balances
         let (tokenABalance, tokenBBalance): (TokenAccountBalance, TokenAccountBalance)
-        if let tab = pool.tokenABalance ?? balancesCache[pool.tokenAccountA],
-           let tbb = pool.tokenBBalance ?? balancesCache[pool.tokenAccountB]
+        if let tab = await balancesCache.getTokenABalance(pool: pool),
+           let tbb = await balancesCache.getTokenBBalance(pool: pool)
         {
             (tokenABalance, tokenBBalance) = (tab, tbb)
         } else {
@@ -87,10 +87,8 @@ extension OrcaSwapV2 {
             )
         }
         
-        locker.lock()
-        balancesCache[pool.tokenAccountA] = tokenABalance
-        balancesCache[pool.tokenAccountB] = tokenBBalance
-        locker.unlock()
+        await balancesCache.save(key: pool.tokenAccountA, value: tokenABalance)
+        await balancesCache.save(key: pool.tokenAccountB, value: tokenBBalance)
         
         pool.tokenABalance = tokenABalance
         pool.tokenBBalance = tokenBBalance

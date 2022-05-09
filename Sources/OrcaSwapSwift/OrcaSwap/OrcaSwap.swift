@@ -20,7 +20,7 @@ public class OrcaSwapV2<
     let accountStorage: SolanaAccountStorage
     
     var info: SwapInfo?
-    var balancesCache = [String: TokenAccountBalance]()
+    let balancesCache = BalancesCache()
     let locker = NSLock()
     
     // MARK: - Initializer
