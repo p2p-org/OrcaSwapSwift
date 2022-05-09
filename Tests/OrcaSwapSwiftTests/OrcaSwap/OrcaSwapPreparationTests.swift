@@ -177,77 +177,83 @@ extension MockSolanaAPIClient {
     func getTokenAccountBalance(pubkey: String, commitment: Commitment?) async throws -> TokenAccountBalance {
         // BTC/ETH
         if pubkey == "81w3VGbnszMKpUwh9EzAF9LpRzkKxc5XYCW64fuYk1jH" {
-            return .init(uiAmount: 0.001014, amount: "1014", decimals: 6, uiAmountString: "0.001014")
+            return.init(amount: 0.001014, decimals: 6)
         }
         if pubkey == "6r14WvGMaR1xGMnaU8JKeuDK38RvUNxJfoXtycUKtC7Z" {
-            return .init(uiAmount: 0.016914, amount: "16914", decimals: 6, uiAmountString: "0.016914")
+            return .init(amount: 0.016914, decimals: 6)
         }
         
         // BTC/SOL[aquafarm]
         if pubkey == "9G5TBPbEUg2iaFxJ29uVAT8ZzxY77esRshyHiLYZKRh8" {
-            return .init(uiAmount: 18.448748, amount: "18448748", decimals: 6, uiAmountString: "18.448748")
+            return .init(amount: 18.448748, decimals: 6)
         }
         if pubkey == "5eqcnUasgU2NRrEAeWxvFVRTTYWJWfAJhsdffvc6nJc2" {
-            return .init(uiAmount: 7218.011507888, amount: "7218011507888", decimals: 9, uiAmountString: "7218.011507888")
+            return .init(amount: 7218.011507888, decimals: 9)
         }
         
         // ETH/SOL
         if pubkey == "FidGus13X2HPzd3cuBEFSq32UcBQkF68niwvP6bM4fs2" {
-            return .init(uiAmount: 0.57422, amount: "574220", decimals: 6, uiAmountString: "0.57422")
+            return .init(amount: 0.57422, decimals: 6)
         }
         if pubkey == "5x1amFuGMfUVzy49Y4Pc3HyCVD2usjLaofnzB3d8h7rv" {
-            return .init(uiAmount: 13.997148152, amount: "13997148152", decimals: 9, uiAmountString: "13.997148152")
+            return .init(amount: 13.997148152, decimals: 9)
         }
         
         // ETH/SOL[aquafarm]
         if pubkey == "7F2cLdio3i6CCJaypj9VfNDPW2DwT3vkDmZJDEfmxu6A" {
-            return .init(uiAmount: 4252.752761, amount: "4252752761", decimals: 6, uiAmountString: "4252.752761")
+            return .init(amount: 4252.752761, decimals: 6)
         }
         if pubkey == "5pUTGvN2AA2BEzBDU4CNDh3LHER15WS6J8oJf5XeZFD8" {
-            return .init(uiAmount: 103486.885774058, amount: "103486885774058", decimals: 9, uiAmountString: "103486.885774058")
+            return .init(amount: 103486.885774058, decimals: 9)
         }
         
         // SOCN/SOL
         if pubkey == "C8DRXUqxXtUgvgBR7BPAmy6tnRJYgVjG27VU44wWDMNV" {
-            return .init(uiAmount: 20097.450122295, amount: "20097450122295", decimals: 9, uiAmountString: "20097.450122295")
+            return .init(amount: 20097.450122295, decimals: 9)
         }
         
         if pubkey == "DzdxH5qJ68PiM1p5o6PbPLPpDj8m1ZshcaMFATcxDZix" {
-            return .init(uiAmount: 27474.561069286, amount: "27474561069286", decimals: 9, uiAmountString: "27474.561069286")
+            return .init(amount: 27474.561069286, decimals: 9)
         }
         
         if pubkey == "D3Wv78j9STkfJx3vhzoCzpMZ4RqCg8oaTNGzi1rZpdJg" {
-            return .init(uiAmount: 26.094032, amount: "26094032", decimals: 6, uiAmountString: "26.094032")
+            return .init(amount: 26.094032, decimals: 6)
         }
         
         if pubkey == "HMFLg2GtbWSSEe92Vuf2LQdUpCacGj2m2PwvMqzwQFNi" {
-            return .init(uiAmount: 1022524.636749, amount: "1022524636749", decimals: 6, uiAmountString: "1022524.636749")
+            return .init(amount: 1022524.636749, decimals: 6)
         }
         
         if pubkey == "H9h5yTBfCHcb4eRP87fXczzXgNaMzKihr7bf1sjw7iuZ" {
-            return .init(uiAmount: 471.034553, amount: "471034553", decimals: 6, uiAmountString: "471.034553")
+            return .init(amount: 471.034553, decimals: 6)
         }
         
         if pubkey == "JA98RXv2VdxQD8pRQq4dzJ1Bp4nH8nokCGmxvPWKJ3hx" {
-            return .init(uiAmount: 1350604.603948, amount: "1350604603948", decimals: 6, uiAmountString: "1350604.603948")
+            return .init(amount: 1350604.603948, decimals: 6)
         }
         
         if pubkey == "8eUUP3t9nkXPub8X6aW2a2gzi82pUFqefwkSY8rCcVxg" {
-            return .init(uiAmount: 0.092121, amount: "92121", decimals: 6, uiAmountString: "0.092121")
+            return .init(amount: 0.092121, decimals: 6)
         }
         
         if pubkey == "2tNEBoEuqJ1pPmA1fpitDnowgUQZXvCT6W3fui67AFfV" {
-            return .init(uiAmount: 265.732429, amount: "265732429", decimals: 6, uiAmountString: "265.732429")
+            return .init(amount: 265.732429, decimals: 6)
         }
         
         if pubkey == "7xs9QsrxQDVoWQ8LQ8VsVjfPKBrPGjvg8ZhaLnU1i2VR" {
-            return .init(uiAmount: 2953.826989329, amount: "2953826989329", decimals: 9, uiAmountString: "2953.826989329")
+            return .init(amount: 2953.826989329, decimals: 9)
         }
         
         if pubkey == "FZFJK64Fk1t619zmVPqCx8Uy29zJ3WuvjWitCQuxXRo3" {
-            return .init(uiAmount: 300343.554305, amount: "300343554305", decimals: 6, uiAmountString: "300343.554305")
+            return .init(amount: 300343.554305, decimals: 6)
         }
         
         fatalError()
+    }
+}
+
+private extension TokenAccountBalance {
+    init(amount: Float64, decimals: UInt8) {
+        self.init(uiAmount: amount, amount: "\(Double(amount).toLamport(decimals: decimals))", decimals: decimals, uiAmountString: "\(amount)")
     }
 }
