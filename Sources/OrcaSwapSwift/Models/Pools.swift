@@ -128,67 +128,64 @@ public extension PoolsPair {
         feePayer: PublicKey?,
         minRenExemption: Lamports
     ) async throws -> (AccountInstructions, Lamports /*account creation fee*/) {
-//        guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
-//
-//        if count == 1 {
-//            // direct swap
-//            return self[0]
-//                .constructExchange(
-//                    tokens: tokens,
-//                    solanaClient: solanaClient,
-//                    owner: owner,
-//                    fromTokenPubkey: fromTokenPubkey,
-//                    toTokenPubkey: toTokenPubkey,
-//                    amount: amount,
-//                    slippage: slippage,
-//                    feePayer: feePayer,
-//                    minRenExemption: minRenExemption
-//                )
-//                .map {($0.0, $0.1)}
-//        } else {
-//            // transitive swap
-//            guard let intermediaryTokenAddress = intermediaryTokenAddress else {
-//                return .error(OrcaSwapError.intermediaryTokenAddressNotFound)
-//            }
-//
-//            return self[0]
-//                .constructExchange(
-//                    tokens: tokens,
-//                    solanaClient: solanaClient,
-//                    owner: owner,
-//                    fromTokenPubkey: fromTokenPubkey,
-//                    toTokenPubkey: intermediaryTokenAddress,
-//                    amount: amount,
-//                    slippage: slippage,
-//                    feePayer: feePayer,
-//                    minRenExemption: minRenExemption
-//                )
-//                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(AccountInstructions, Lamports /*account creation fee*/)> in
-//                    guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
-//                    else {throw OrcaSwapError.unknown}
-//
-//                    return self[1].constructExchange(
-//                        tokens: tokens,
-//                        solanaClient: solanaClient,
-//                        owner: owner,
-//                        fromTokenPubkey: intermediaryTokenAddress,
-//                        toTokenPubkey: toTokenPubkey,
-//                        amount: amount,
-//                        slippage: slippage,
-//                        feePayer: feePayer,
-//                        minRenExemption: minRenExemption
-//                    )
-//                        .map {pool1AccountInstructions, pool1AccountCreationFee in
-//                            (.init(
-//                                account: pool1AccountInstructions.account,
-//                                instructions: pool0AccountInstructions.instructions + pool1AccountInstructions.instructions,
-//                                cleanupInstructions: pool0AccountInstructions.cleanupInstructions + pool1AccountInstructions.cleanupInstructions,
-//                                signers: pool0AccountInstructions.signers + pool1AccountInstructions.signers
-//                            ), pool0AccountCreationFee + pool1AccountCreationFee)
-//                        }
-//                }
-//                .map {($0.0, $0.1)}
-//        }
+        guard count > 0 && count <= 2 else { throw OrcaSwapError.invalidPool }
+
+        if count == 1 {
+            // direct swap
+            return try await self[0].constructExchange(
+                tokens: tokens,
+                solanaClient: solanaClient,
+                owner: owner,
+                fromTokenPubkey: fromTokenPubkey,
+                toTokenPubkey: toTokenPubkey,
+                amount: amount,
+                slippage: slippage,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
+        } else {
+            // transitive swap
+            guard let intermediaryTokenAddress = intermediaryTokenAddress else {
+                throw OrcaSwapError.intermediaryTokenAddressNotFound
+            }
+            
+            guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
+            else {
+                throw OrcaSwapError.unknown
+            }
+            
+            // first construction
+            let (pool0AccountInstructions, pool0AccountCreationFee) = try await self[0].constructExchange(
+                tokens: tokens,
+                solanaClient: solanaClient,
+                owner: owner,
+                fromTokenPubkey: fromTokenPubkey,
+                toTokenPubkey: intermediaryTokenAddress,
+                amount: amount,
+                slippage: slippage,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
+
+            let (pool1AccountInstructions, pool1AccountCreationFee) = try await self[1].constructExchange(
+                tokens: tokens,
+                solanaClient: solanaClient,
+                owner: owner,
+                fromTokenPubkey: intermediaryTokenAddress,
+                toTokenPubkey: toTokenPubkey,
+                amount: amount,
+                slippage: slippage,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
+            
+            return (.init(
+                account: pool1AccountInstructions.account,
+                instructions: pool0AccountInstructions.instructions + pool1AccountInstructions.instructions,
+                cleanupInstructions: pool0AccountInstructions.cleanupInstructions + pool1AccountInstructions.cleanupInstructions,
+                signers: pool0AccountInstructions.signers + pool1AccountInstructions.signers
+            ), pool0AccountCreationFee + pool1AccountCreationFee)
+        }
     }
     
     func getOutputAmount(
