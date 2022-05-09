@@ -78,7 +78,7 @@
         "repositoryURL": "https://github.com/p2p-org/solana-swift.git",
         "state": {
           "branch": "test/quick-merge-for-implementation",
-          "revision": "2c03a96b6552d45b17d6dcd3bdcb4434461351f9",
+          "revision": "3399217a137426c010f1c7b37fa657e025f5fe30",
           "version": null
         }
       },
@@ -89,6 +89,15 @@
           "branch": null,
           "revision": "df8d82047f6654d8e4b655d1b1525c64e1059d21",
           "version": "4.0.4"
+        }
+      },
+      {
+        "package": "Task_retrying",
+        "repositoryURL": "https://github.com/bigearsenal/task-retrying-swift.git",
+        "state": {
+          "branch": null,
+          "revision": "1e83e99e412b27a5b1f2123493ed7ae4f2df7413",
+          "version": "1.0.1"
         }
       },
       {
