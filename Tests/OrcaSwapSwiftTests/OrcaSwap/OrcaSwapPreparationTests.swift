@@ -252,8 +252,19 @@ extension MockSolanaAPIClient {
     }
 }
 
-private extension TokenAccountBalance {
-    init(amount: Float64, decimals: UInt8) {
-        self.init(uiAmount: amount, amount: "\(Double(amount).toLamport(decimals: decimals))", decimals: decimals, uiAmountString: "\(amount)")
+private struct MockAccountStorage: SolanaAccountStorage {
+    var account: Account? {
+        get throws {
+            try? .init(
+                phrase: "miracle pizza supply useful steak border same again youth silver access hundred"
+                    .components(separatedBy: " "),
+                network: .mainnetBeta,
+                derivablePath: .init(type: .deprecated, walletIndex: 0)
+            )
+        }
+    }
+    
+    func save(_ account: Account) throws {
+        // do nothing
     }
 }

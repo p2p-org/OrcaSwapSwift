@@ -433,7 +433,6 @@ public class OrcaSwapV2<
             instructions: swapTransaction.instructions,
             signers: swapTransaction.signers,
             feePayer: feePayer,
-            recentBlockhash: nil,
             feeCalculator: nil
         )
         
