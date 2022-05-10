@@ -149,7 +149,7 @@ final class SwapTests: XCTestCase {
             bestPoolsPair: pools,
             amount: amount,
             slippage: 0.5,
-            isSimulation: true
+            isSimulation: isSimulation
         )
     }
 }
