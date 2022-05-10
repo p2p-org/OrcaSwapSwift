@@ -182,7 +182,7 @@ struct MockSocket: OrcaSwapSignatureConfirmationHandler {
 func getMockConfigs(network: String) -> OrcaConfigs {
     let thisSourceFile = URL(fileURLWithPath: #file)
     let thisDirectory = thisSourceFile.deletingLastPathComponent()
-    let resourceURL = thisDirectory.appendingPathComponent("../../Resources/orcaconfigs-\(network).json")
+    let resourceURL = thisDirectory.appendingPathComponent("../../../Resources/orcaconfigs-\(network).json")
     let data = try! Data(contentsOf: resourceURL)
     return try! JSONDecoder().decode(OrcaConfigs.self, from: data)
 }
