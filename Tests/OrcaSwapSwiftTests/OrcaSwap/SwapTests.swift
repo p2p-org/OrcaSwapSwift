@@ -5,7 +5,7 @@ import SolanaSwift
 
 final class SwapTests: XCTestCase {
     // MARK: - Properties
-    var orcaSwap: OrcaSwapV2<JSONRPCAPIClient, BlockchainClient<JSONRPCAPIClient>>!
+    var orcaSwap: OrcaSwap<JSONRPCAPIClient, BlockchainClient<JSONRPCAPIClient>>!
     
     // MARK: - Setup
     override func setUp() async throws {
@@ -73,8 +73,8 @@ final class SwapTests: XCTestCase {
         
         let solanaAPIClient = JSONRPCAPIClient(endpoint: .init(address: test.endpoint, network: network, additionalQuery: test.endpointAdditionalQuery))
         let blockchainClient = BlockchainClient(apiClient: solanaAPIClient)
-        orcaSwap = OrcaSwapV2(
-            apiClient: APIClientV2(configsProvider: MockConfigsProvider()),
+        orcaSwap = OrcaSwap(
+            apiClient: APIClient(configsProvider: MockConfigsProvider()),
             solanaClient: solanaAPIClient,
             blockchainClient: blockchainClient,
             accountStorage: MockAccountStorage(

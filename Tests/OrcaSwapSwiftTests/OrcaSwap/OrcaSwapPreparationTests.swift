@@ -7,7 +7,7 @@ class OrcaSwapPreparationTests: XCTestCase {
     let ethMint = "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"
     let socnMint = "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm"
     
-    fileprivate var orcaSwap: OrcaSwapV2<MockSolanaAPIClient, BlockchainClient<MockSolanaAPIClient>>!
+    fileprivate var orcaSwap: OrcaSwap<MockSolanaAPIClient, BlockchainClient<MockSolanaAPIClient>>!
     
     var swapInfo: SwapInfo {
         orcaSwap.info!
@@ -16,8 +16,8 @@ class OrcaSwapPreparationTests: XCTestCase {
     override func setUp() async throws {
         let solanaAPIClient = MockSolanaAPIClient()
         let blockchainClient = BlockchainClient(apiClient: solanaAPIClient)
-        orcaSwap = OrcaSwapV2(
-            apiClient: APIClientV2(configsProvider: MockConfigsProvider()),
+        orcaSwap = OrcaSwap(
+            apiClient: APIClient(configsProvider: MockConfigsProvider()),
             solanaClient: solanaAPIClient,
             blockchainClient: blockchainClient,
             accountStorage: MockAccountStorage()

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RxSwift
 import SolanaSwift
 
 private let N_COINS: UInt64 = 2

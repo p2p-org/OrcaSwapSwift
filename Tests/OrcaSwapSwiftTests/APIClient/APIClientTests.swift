@@ -2,7 +2,7 @@ import XCTest
 import OrcaSwapSwift
 
 class APIClientTests: XCTestCase {
-    private let client = APIClientV2(configsProvider: MockConfigsProvider())
+    private let client = APIClient(configsProvider: MockConfigsProvider())
 
     func testRetrievingTokens() async throws {
         let tokens = try await client.getTokens()

@@ -8,7 +8,7 @@
 import Foundation
 import SolanaSwift
 
-public protocol OrcaSwapTypeV2 {
+public protocol OrcaSwapType {
     func load() async throws
     func getMint(tokenName: String) -> String?
     func findPosibleDestinationMints(fromMint: String) throws -> [String]

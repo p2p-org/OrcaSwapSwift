@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RxSwift
 import SolanaSwift
 
 public typealias Pools = [String: Pool] // [poolId: string]: PoolConfig;

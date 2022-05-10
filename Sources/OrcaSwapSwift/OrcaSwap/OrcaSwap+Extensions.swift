@@ -1,7 +1,7 @@
 import Foundation
 import SolanaSwift
 
-extension OrcaSwapV2 {
+extension OrcaSwap {
     func getPools(
         forRoute route: Route,
         fromTokenName: String,

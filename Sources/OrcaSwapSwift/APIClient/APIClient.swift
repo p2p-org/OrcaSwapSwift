@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol OrcaSwapAPIClientV2 {
+public protocol OrcaSwapAPIClient {
     var configsProvider: OrcaSwapConfigsProvider {get}
     func reload() async throws
     func getTokens() async throws -> [String: TokenValue]
@@ -16,7 +16,7 @@ public protocol OrcaSwapAPIClientV2 {
     func getProgramID() async throws -> ProgramIDS
 }
 
-extension OrcaSwapAPIClientV2 {
+extension OrcaSwapAPIClient {
     // MARK: - Methods
     public func reload() async throws {
         _ = try await configsProvider.getData(reload: true)
@@ -47,7 +47,7 @@ extension OrcaSwapAPIClientV2 {
     }
 }
 
-public class APIClientV2: OrcaSwapAPIClientV2 {
+public class APIClient: OrcaSwapAPIClient {
     // MARK: - Properties
     
     public let configsProvider: OrcaSwapConfigsProvider
