@@ -253,17 +253,3 @@ public extension PoolsPair {
         return (baseOutputAmountDecimal - inputAmountDecimal) / baseOutputAmountDecimal * 100
     }
 }
-
-// MARK: - Helpers
-private func createSolanaAccountAsync(network: Network) -> Single<Account> {
-    AsyncThrowingStream<Account, Error> {continuation in
-        Task(priority: .high) {
-            let account = try await Account(network: network)
-            continuation.yield(account)
-            continuation.finish()
-        }
-    }
-    .asObservable()
-    .take(1)
-    .asSingle()
-}
