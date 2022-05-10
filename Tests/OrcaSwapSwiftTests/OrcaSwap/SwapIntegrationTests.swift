@@ -1,11 +1,11 @@
 import Foundation
 import XCTest
-@testable import SolanaSwift
+import SolanaSwift
 @testable import OrcaSwapSwift
 
-final class SwapTests: XCTestCase {
+final class SwapIntegrationTests: XCTestCase {
     // MARK: - Properties
-    fileprivate var orcaSwap: OrcaSwap<MockSolanaAPIClient2, BlockchainClient<MockSolanaAPIClient2>>!
+    var orcaSwap: OrcaSwap<JSONRPCAPIClient, BlockchainClient<JSONRPCAPIClient>>!
     
     // MARK: - Setup
     override func setUp() async throws {
@@ -71,7 +71,7 @@ final class SwapTests: XCTestCase {
         let network = Network.mainnetBeta
         let orcaSwapNetwork = network == .mainnetBeta ? "mainnet": network.cluster
         
-        let solanaAPIClient = MockSolanaAPIClient2(endpoint: .init(address: test.endpoint, network: network, additionalQuery: test.endpointAdditionalQuery))
+        let solanaAPIClient = JSONRPCAPIClient(endpoint: .init(address: test.endpoint, network: network, additionalQuery: test.endpointAdditionalQuery))
         let blockchainClient = BlockchainClient(apiClient: solanaAPIClient)
         orcaSwap = OrcaSwap(
             apiClient: APIClient(configsProvider: MockConfigsProvider()),
@@ -177,54 +177,5 @@ private struct MockAccountStorage: SolanaAccountStorage {
     
     func save(_ account: Account) throws {
         // do nothing
-    }
-}
-
-public class MockSolanaAPIClient2: SolanaAPIClient {
-    init(endpoint: APIEndPoint) {
-        self.endpoint = endpoint
-    }
-    
-    public var endpoint: APIEndPoint
-    
-    public func request<Entity>(with request: JSONRPCAPIClientRequest<AnyDecodable>) async throws -> AnyResponse<Entity> where Entity : Decodable {
-        fatalError()
-    }
-    
-    public func request(with requests: [JSONRPCAPIClientRequest<AnyDecodable>]) async throws -> [AnyResponse<AnyDecodable>] {
-        fatalError()
-    }
-    
-    public typealias ResponseDecoder = JSONRPCResponseDecoder
-    public typealias RequestEncoder = JSONRPCRequestEncoder
-    
-}
-
-public extension MockSolanaAPIClient2 {
-    func getTokenAccountBalance(pubkey: String, commitment: Commitment?) async throws -> TokenAccountBalance {
-        switch pubkey {
-        case "FdiTt7XQ94fGkgorywN1GuXqQzmURHCDgYtUutWRcy4q":
-            return TokenAccountBalance(amount: 389.627856679, decimals: 9)
-        case "7VcwKUtdKnvcgNhZt5BQHsbPrXLxhdVomsgrr7k2N5P5":
-            return TokenAccountBalance(amount: 27053.369728, decimals: 6)
-        default:
-            fatalError()
-        }
-    }
-    
-    func getMinimumBalanceForRentExemption(dataLength: UInt64, commitment: Commitment? = "recent") async throws -> UInt64 {
-        2039280
-    }
-    
-    func getMinimumBalanceForRentExemption(span: UInt64) async throws -> UInt64 {
-        2039280
-    }
-    
-    func getFees(commitment: Commitment? = nil) async throws -> Fee {
-        .init(feeCalculator: .init(lamportsPerSignature: 5000), feeRateGovernor: nil, blockhash: "ADZgUVaAfUx5ehFXivdaUSHucpNdk4VqGSdN4TjttWgr", lastValidSlot: 133257026)
-    }
-    
-    func getRecentBlockhash(commitment: Commitment? = nil) async throws -> String {
-        "NS37crgkUQQwwFjdEdWNQFCyatLGN68F55FG2Hv4FFS"
     }
 }
