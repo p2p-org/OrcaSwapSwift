@@ -18,7 +18,6 @@ let package = Package(
             targets: ["OrcaSwapSwift"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ReactiveX/RxSwift.git", from: "6.2.0"),
         .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "test/quick-merge-for-implementation")
     ],
     targets: [
@@ -32,6 +31,6 @@ let package = Package(
         ),
         .testTarget(
             name: "OrcaSwapSwiftTests",
-            dependencies: ["OrcaSwapSwift",.product(name: "RxBlocking", package: "RxSwift")]),
+            dependencies: ["OrcaSwapSwift"]),
     ]
 )
