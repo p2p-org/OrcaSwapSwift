@@ -86,8 +86,8 @@
         "package": "SolanaSwift",
         "repositoryURL": "https://github.com/p2p-org/solana-swift.git",
         "state": {
-          "branch": "test/quick-merge-for-implementation",
-          "revision": "7968f07fa1b68ddb46a16012e16463c62c26c4d4",
+          "branch": "refactor/pwn-3297",
+          "revision": "a4345bb8e7dc0994090e2b1862255f3bdf3357b3",
           "version": null
         }
       },
