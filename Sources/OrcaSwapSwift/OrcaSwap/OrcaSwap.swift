@@ -8,12 +8,12 @@
 import Foundation
 import SolanaSwift
 
-public class OrcaSwap: OrcaSwapType {
+public class OrcaSwap<APIClient: SolanaAPIClient, BlockchainClient :SolanaBlockchainClient>: OrcaSwapType {
     // MARK: - Properties
     private var cache: SwapInfo?
     let apiClient: OrcaSwapAPIClient
-    let blockchainClient: SolanaBlockchainClient
-    let solanaClient: SolanaAPIClient
+    let blockchainClient: BlockchainClient
+    let solanaClient: APIClient
     let accountStorage: SolanaAccountStorage
     
     var info: SwapInfo?
@@ -23,7 +23,7 @@ public class OrcaSwap: OrcaSwapType {
     // MARK: - Initializer
     public init(
         apiClient: OrcaSwapAPIClient,
-        solanaClient: SolanaAPIClient,
+        solanaClient: APIClient,
         blockchainClient: BlockchainClient,
         accountStorage: SolanaAccountStorage
     ) {

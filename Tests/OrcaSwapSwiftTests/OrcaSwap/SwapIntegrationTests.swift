@@ -5,7 +5,7 @@ import SolanaSwift
 
 final class SwapIntegrationTests: XCTestCase {
     // MARK: - Properties
-    var orcaSwap: OrcaSwap<JSONRPCAPIClient, BlockchainClient<JSONRPCAPIClient>>!
+    var orcaSwap: OrcaSwap<JSONRPCAPIClient, BlockchainClient>!
     
     // MARK: - Setup
     override func setUp() async throws {
