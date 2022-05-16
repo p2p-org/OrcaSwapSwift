@@ -8,12 +8,12 @@
 import Foundation
 import SolanaSwift
 
-public class OrcaSwap<APIClient: SolanaAPIClient, BlockchainClient :SolanaBlockchainClient>: OrcaSwapType {
+public class OrcaSwap: OrcaSwapType {
     // MARK: - Properties
     private var cache: SwapInfo?
     let apiClient: OrcaSwapAPIClient
-    let blockchainClient: BlockchainClient
-    let solanaClient: APIClient
+    let blockchainClient: SolanaBlockchainClient
+    let solanaClient: SolanaAPIClient
     let accountStorage: SolanaAccountStorage
     
     var info: SwapInfo?
@@ -23,8 +23,8 @@ public class OrcaSwap<APIClient: SolanaAPIClient, BlockchainClient :SolanaBlockc
     // MARK: - Initializer
     public init(
         apiClient: OrcaSwapAPIClient,
-        solanaClient: APIClient,
-        blockchainClient: BlockchainClient,
+        solanaClient: SolanaAPIClient,
+        blockchainClient: SolanaBlockchainClient,
         accountStorage: SolanaAccountStorage
     ) {
         self.apiClient = apiClient
@@ -491,7 +491,7 @@ public class OrcaSwap<APIClient: SolanaAPIClient, BlockchainClient :SolanaBlockc
         let (accountInstructions, accountCreationFee) = try await [pool].constructExchange(
             tokens: info.tokens,
             blockchainClient: blockchainClient,
-            owner: owner,
+            owner: owner.publicKey,
             fromTokenPubkey: fromTokenPubkey,
             toTokenPubkey: toTokenPubkey,
             amount: amount,
@@ -529,7 +529,7 @@ public class OrcaSwap<APIClient: SolanaAPIClient, BlockchainClient :SolanaBlockc
         var (accountInstructions, accountCreationFee) = try await [pool0, pool1].constructExchange(
             tokens: info.tokens,
             blockchainClient: blockchainClient,
-            owner: owner,
+            owner: owner.publicKey,
             fromTokenPubkey: fromTokenPubkey,
             intermediaryTokenAddress: intermediaryTokenAddress,
             toTokenPubkey: destinationTokenAddress,

@@ -5,7 +5,7 @@ import XCTest
 
 final class SwapTests: XCTestCase {
     // MARK: - Properties
-    fileprivate var orcaSwap: OrcaSwap<MockSolanaAPIClient2, BlockchainClient>!
+    fileprivate var orcaSwap: OrcaSwap!
     
     // MARK: - Setup
     override func setUp() async throws {
@@ -123,7 +123,7 @@ final class SwapTests: XCTestCase {
 }
 
 private extension OrcaSwapSwift.Pool {
-    func filledWithUpdatedBalances<APIClient: SolanaAPIClient>(apiClient: APIClient) async throws -> OrcaSwapSwift.Pool {
+    func filledWithUpdatedBalances(apiClient: SolanaAPIClient) async throws -> OrcaSwapSwift.Pool {
         let (tokenABalance, tokenBBalance) = try await (
             apiClient.getTokenAccountBalance(pubkey: tokenAccountA, commitment: nil),
             apiClient.getTokenAccountBalance(pubkey: tokenAccountB, commitment: nil)

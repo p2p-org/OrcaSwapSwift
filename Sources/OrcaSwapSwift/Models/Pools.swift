@@ -13,10 +13,10 @@ public typealias PoolsPair = [Pool]
 private let lock = NSLock()
 
 public extension PoolsPair {
-    func constructExchange<BlockchainClient: SolanaBlockchainClient>(
+    func constructExchange(
         tokens: [String: TokenValue],
-        blockchainClient: BlockchainClient,
-        owner: Account,
+        blockchainClient: SolanaBlockchainClient,
+        owner: PublicKey,
         fromTokenPubkey: String,
         intermediaryTokenAddress: String? = nil,
         toTokenPubkey: String?,

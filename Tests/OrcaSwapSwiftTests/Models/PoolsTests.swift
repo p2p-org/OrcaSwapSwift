@@ -30,4 +30,3 @@ class PoolsTestsTests: XCTestCase {
     }
 
 }
-

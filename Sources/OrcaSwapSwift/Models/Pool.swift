@@ -195,10 +195,10 @@ extension Pool {
     }
     
     /// Construct exchange
-    func constructExchange<BlockchainClient: SolanaBlockchainClient>(
+    func constructExchange(
         tokens: [String: TokenValue],
-        blockchainClient: BlockchainClient,
-        owner: Account,
+        blockchainClient: SolanaBlockchainClient,
+        owner: PublicKey,
         fromTokenPubkey: String,
         toTokenPubkey: String?,
         amount: Lamports,
@@ -215,12 +215,12 @@ extension Pool {
         let sourceAccountInstructions: AccountInstructions
         
         if fromMint == .wrappedSOLMint &&
-            owner.publicKey == fromTokenPubkey
+            owner == fromTokenPubkey
         {
             sourceAccountInstructions = try await blockchainClient.prepareCreatingWSOLAccountAndCloseWhenDone(
-                from: owner.publicKey,
+                from: owner,
                 amount: amount,
-                payer: feePayer ?? owner.publicKey,
+                payer: feePayer ?? owner,
                 minRentExemption: minRenExemption
             )
         } else {
@@ -233,7 +233,7 @@ extension Pool {
         // If destination token is Solana, create WSOL if needed
         if toMint == .wrappedSOLMint {
             if let toTokenPubkey = try? toTokenPubkey?.toPublicKey(),
-               toTokenPubkey != owner.publicKey
+               toTokenPubkey != owner
             {
                 // wrapped sol has already been created, just return it, then close later
                 destinationAccountInstructions = .init(
@@ -241,17 +241,17 @@ extension Pool {
                     cleanupInstructions: [
                         TokenProgram.closeAccountInstruction(
                             account: toTokenPubkey,
-                            destination: owner.publicKey,
-                            owner: owner.publicKey
+                            destination: owner,
+                            owner: owner
                         )
                     ]
                 )
             } else {
                 // create wrapped sol
                 destinationAccountInstructions = try await blockchainClient.prepareCreatingWSOLAccountAndCloseWhenDone(
-                    from: owner.publicKey,
+                    from: owner,
                     amount: 0,
-                    payer: feePayer ?? owner.publicKey,
+                    payer: feePayer ?? owner,
                     minRentExemption: minRenExemption
                 )
             }
@@ -265,9 +265,9 @@ extension Pool {
         // Create associated token address
         else {
             destinationAccountInstructions = try await blockchainClient.prepareForCreatingAssociatedTokenAccount(
-                owner: owner.publicKey,
+                owner: owner,
                 mint: toMint,
-                feePayer: feePayer ?? owner.publicKey,
+                feePayer: feePayer ?? owner,
                 closeAfterward: false
             )
         }
@@ -296,7 +296,7 @@ extension Pool {
         else {throw OrcaSwapError.couldNotEstimatedMinimumOutAmount}
 
         let swapInstruction = try createSwapInstruction(
-            userTransferAuthorityPubkey: owner.publicKey,
+            userTransferAuthorityPubkey: owner,
             sourceTokenAddress: sourceAccountInstructions.account,
             destinationTokenAddress: destinationAccountInstructions.account,
             amountIn: amount,

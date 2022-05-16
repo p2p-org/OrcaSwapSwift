@@ -7,7 +7,7 @@ class OrcaSwapPreparationTests: XCTestCase {
     let ethMint = "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"
     let socnMint = "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm"
     
-    fileprivate var orcaSwap: OrcaSwap<MockSolanaAPIClient, BlockchainClient>!
+    fileprivate var orcaSwap: OrcaSwap!
     
     var swapInfo: SwapInfo {
         orcaSwap.info!
