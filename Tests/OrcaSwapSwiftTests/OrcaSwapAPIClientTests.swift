@@ -14,7 +14,7 @@ import RxBlocking
 @testable import OrcaSwapSwift
 
 class OrcaSwapAPIClientTests: XCTestCase {
-    private let client = OrcaSwap.APIClient(network: "mainnet-beta")
+    private let client = APIClient(network: "mainnet-beta")
     
     func testRetrievingTokens() throws {
         let tokens = try client.getTokens().toBlocking().first()
@@ -33,6 +33,6 @@ class OrcaSwapAPIClientTests: XCTestCase {
     
     func testRetrievingProgramId() throws {
         let programId = try client.getProgramID().toBlocking().first()
-        XCTAssertEqual("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", programId?.token)
+        XCTAssertEqual(.tokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA, programId?.token)
     }
 }

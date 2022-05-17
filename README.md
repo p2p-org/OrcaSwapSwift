@@ -10,10 +10,10 @@ import OrcaSwapSwift
 * Create instance of orca
 ```swift
 let orcaSwap = OrcaSwap(
-    apiClient: OrcaSwap.MockAPIClient(network: "mainnet"),
+    apiClient: APIClient(network: "mainnet"),
     solanaClient: solanaSDK,
     accountProvider: solanaSDK,
-    notificationHandler: socket
+    notificationHandler: solanaSDK
 )
 ```
 * Swap
