@@ -84,8 +84,11 @@ public class OrcaSwap: OrcaSwapType {
         else {throw OrcaSwapError.notFound}
         
         let routes = try findRoutes(fromTokenName: fromTokenName, toTokenName: nil)
-        return routes.keys.compactMap {$0.components(separatedBy: "/")
-            .first(where: {!$0.contains(fromTokenName)})}
+        return routes.keys
+            .compactMap {
+                $0.components(separatedBy: "/")
+                    .first(where: {$0 != fromTokenName})
+            }
             .unique
             .compactMap {info?.tokens[$0]?.mint}
     }
