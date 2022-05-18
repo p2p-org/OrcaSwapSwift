@@ -40,8 +40,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      codeCoverageEnabled = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
          <TestableReference
             skipped = "NO">
@@ -60,6 +59,26 @@
                BlueprintIdentifier = "OrcaSwapIntegrationTests"
                BuildableName = "OrcaSwapIntegrationTests"
                BlueprintName = "OrcaSwapIntegrationTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "OrcaSwapUnitTests"
+               BuildableName = "OrcaSwapUnitTests"
+               BlueprintName = "OrcaSwapUnitTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "OrcaSwapTestHelper"
+               BuildableName = "OrcaSwapTestHelper"
+               BlueprintName = "OrcaSwapTestHelper"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
