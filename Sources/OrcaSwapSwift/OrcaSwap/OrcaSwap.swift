@@ -388,11 +388,9 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         else {
-            var statuses = [TransactionStatus]()
-            for try await status in solanaClient.observeSignatureStatus(signature: txid) {
-                statuses.append(status)
-            }
-            print(statuses)
+            // wait maximum 60s to make sure that signature is confirmed
+            try await solanaClient.waitForConfirmation(signature: txid, ignoreStatus: true)
+            
             // send second transaction anyway
             let txid2 = try await Task.retrying(
                 where: { error in
