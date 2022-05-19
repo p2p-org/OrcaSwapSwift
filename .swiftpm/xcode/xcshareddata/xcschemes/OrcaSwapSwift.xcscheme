@@ -66,6 +66,16 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "OrcaSwapTestHelper"
+               BuildableName = "OrcaSwapTestHelper"
+               BlueprintName = "OrcaSwapTestHelper"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "OrcaSwapUnitTests"
                BuildableName = "OrcaSwapUnitTests"
                BlueprintName = "OrcaSwapUnitTests"
@@ -76,9 +86,19 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "OrcaSwapTestHelper"
-               BuildableName = "OrcaSwapTestHelper"
-               BlueprintName = "OrcaSwapTestHelper"
+               BlueprintIdentifier = "IntegrationTests"
+               BuildableName = "IntegrationTests"
+               BlueprintName = "IntegrationTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "UnitTests"
+               BuildableName = "UnitTests"
+               BlueprintName = "UnitTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

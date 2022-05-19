@@ -30,16 +30,12 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "OrcaSwapTestHelper",
+            name: "UnitTests",
             dependencies: ["OrcaSwapSwift"]
         ),
         .testTarget(
-            name: "OrcaSwapUnitTests",
-            dependencies: ["OrcaSwapTestHelper"]
-        ),
-        .testTarget(
-            name: "OrcaSwapIntegrationTests",
-            dependencies: ["OrcaSwapTestHelper"]
+            name: "IntegrationTests",
+            dependencies: ["OrcaSwapSwift"]
         ),
     ]
 )

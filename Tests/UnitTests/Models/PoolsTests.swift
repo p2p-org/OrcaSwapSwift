@@ -2,14 +2,14 @@ import XCTest
 @testable import SolanaSwift
 @testable import OrcaSwapSwift
 
-class PoolsTestsTests: XCTestCase {
+class PoolsTests: XCTestCase {
     
     override func setUp() async throws {}
     
     func testGetInputAmount() async throws {
         let api = APIClient(configsProvider: MockConfigsProvider())
-        let pools = try await api.getPools()
-        var pool = pools.values.first!
+        let pools = try await api.getPools().sorted(by: {$0.key < $1.key}).map {$0.value}
+        var pool = pools.first!
         pool.tokenABalance = .init(amount: 1, decimals: 1)
         pool.tokenBBalance = .init(amount: 2, decimals: 1)
         let estimatedAmount2: UInt64 = 1
@@ -19,8 +19,8 @@ class PoolsTestsTests: XCTestCase {
     
     func testGetBaseOutputAmount() async throws {
         let api = APIClient(configsProvider: MockConfigsProvider())
-        let pools = try await api.getPools()
-        var pool = pools.values.first!
+        let pools = try await api.getPools().sorted(by: {$0.key < $1.key}).map {$0.value}
+        var pool = pools.first!
         pool.tokenABalance = .init(amount: 1, decimals: 1)
         pool.tokenBBalance = .init(amount: 2, decimals: 1)
         let result = try pool.getBaseOutputAmount(inputAmount: 1)
