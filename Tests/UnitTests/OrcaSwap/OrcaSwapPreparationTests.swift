@@ -7,14 +7,14 @@ class OrcaSwapPreparationTests: XCTestCase {
     let ethMint = "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"
     let socnMint = "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm"
     
-    fileprivate var orcaSwap: OrcaSwap<MockSolanaAPIClient, BlockchainClient<MockSolanaAPIClient>>!
+    fileprivate var orcaSwap: OrcaSwap!
     
     var swapInfo: SwapInfo {
         orcaSwap.info!
     }
     
     override func setUp() async throws {
-        let solanaAPIClient = MockSolanaAPIClient()
+        let solanaAPIClient = MockSolanaAPIClient(endpoint: .init(address: "", network: .devnet))
         let blockchainClient = BlockchainClient(apiClient: solanaAPIClient)
         orcaSwap = OrcaSwap(
             apiClient: APIClient(configsProvider: MockConfigsProvider()),
@@ -157,24 +157,8 @@ class OrcaSwapPreparationTests: XCTestCase {
     }
 }
 
-private class MockSolanaAPIClient: SolanaAPIClient {
-    var endpoint: APIEndPoint {
-        fatalError()
-    }
-    
-    func request<Entity>(with request: JSONRPCAPIClientRequest<AnyDecodable>) async throws -> AnyResponse<Entity> where Entity : Decodable {
-        fatalError()
-    }
-    
-    func request(with requests: [JSONRPCAPIClientRequest<AnyDecodable>]) async throws -> [AnyResponse<AnyDecodable>] {
-        fatalError()
-    }
-    
-    typealias RequestEncoder = JSONRPCRequestEncoder
-}
-
-extension MockSolanaAPIClient {
-    func getTokenAccountBalance(pubkey: String, commitment: Commitment?) async throws -> TokenAccountBalance {
+private class MockSolanaAPIClient: JSONRPCAPIClient {
+    override func getTokenAccountBalance(pubkey: String, commitment: Commitment?) async throws -> TokenAccountBalance {
         // BTC/ETH
         if pubkey == "81w3VGbnszMKpUwh9EzAF9LpRzkKxc5XYCW64fuYk1jH" {
             return.init(amount: 0.001014, decimals: 6)

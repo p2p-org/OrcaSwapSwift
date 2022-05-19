@@ -1,11 +1,11 @@
 import Foundation
 import XCTest
-import SolanaSwift
+@testable import SolanaSwift
 @testable import OrcaSwapSwift
 
-final class SwapIntegrationTests: XCTestCase {
+final class SwapTests: XCTestCase {
     // MARK: - Properties
-    var orcaSwap: OrcaSwap<JSONRPCAPIClient, BlockchainClient<JSONRPCAPIClient>>!
+    fileprivate var orcaSwap: OrcaSwap!
     
     // MARK: - Setup
     override func setUp() async throws {
@@ -43,9 +43,7 @@ final class SwapIntegrationTests: XCTestCase {
     }
     
     func testTransitiveSwapSOLToNonCreatedSPL() async throws {
-        let test = try await doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
-        
-        try closeAssociatedToken(mint: test.toMint)
+        try await doTest(testJSONFile: "transitive-swap-tests", testName: "solToNonCreatedSpl", isSimulation: true)
     }
 
     func testTransitiveSwapSPLToSOL() async throws {
@@ -57,11 +55,8 @@ final class SwapIntegrationTests: XCTestCase {
     }
     
     func testTransitiveSwapSPLToNonCreatedSPL() async throws {
-        let test = try await doTest(testJSONFile: "transitive-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
-        
-        try closeAssociatedToken(mint: test.toMint)
+        try await doTest(testJSONFile: "transitive-swap-tests", testName: "splToNonCreatedSpl", isSimulation: true)
     }
-    
     
     // MARK: - Helpers
     @discardableResult
@@ -69,9 +64,7 @@ final class SwapIntegrationTests: XCTestCase {
         let test = try getDataFromJSONTestResourceFile(fileName: testJSONFile, decodedTo: [String: SwapTest].self)[testName]!
         
         let network = Network.mainnetBeta
-        let orcaSwapNetwork = network == .mainnetBeta ? "mainnet": network.cluster
-        
-        let solanaAPIClient = JSONRPCAPIClient(endpoint: .init(address: test.endpoint, network: network, additionalQuery: test.endpointAdditionalQuery))
+        let solanaAPIClient = MockSolanaAPIClient2(endpoint: .init(address: test.endpoint, network: network, additionalQuery: test.endpointAdditionalQuery), networkManager: URLSession.shared)
         let blockchainClient = BlockchainClient(apiClient: solanaAPIClient)
         orcaSwap = OrcaSwap(
             apiClient: APIClient(configsProvider: MockConfigsProvider()),
@@ -96,31 +89,6 @@ final class SwapIntegrationTests: XCTestCase {
         )
         
         return test
-    }
-    
-    func closeAssociatedToken(mint: String) throws {
-        let associatedTokenAddress = try PublicKey.associatedTokenAddress(
-            walletAddress: orcaSwap.accountStorage.account!.publicKey,
-            tokenMintAddress: try PublicKey(string: mint)
-        )
-        
-//        let _ = try orcaSwap.solanaClient.closeTokenAccount(
-//            tokenPubkey: associatedTokenAddress.base58EncodedString
-//        )
-//            .retry { errors in
-//                errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
-//                    let error = error as! SolanaError
-//                    switch error {
-//                    case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
-//                        return .timer(.seconds(1), scheduler: MainScheduler.instance)
-//                    default:
-//                        break
-//                    }
-//                    return .error(error)
-//                }
-//            }
-//            .timeout(.seconds(60), scheduler: MainScheduler.instance)
-//            .toBlocking().first()
     }
     
     // MARK: - Helper
@@ -155,7 +123,7 @@ final class SwapIntegrationTests: XCTestCase {
 }
 
 private extension OrcaSwapSwift.Pool {
-    func filledWithUpdatedBalances<APIClient: SolanaAPIClient>(apiClient: APIClient) async throws -> OrcaSwapSwift.Pool {
+    func filledWithUpdatedBalances(apiClient: SolanaAPIClient) async throws -> OrcaSwapSwift.Pool {
         let (tokenABalance, tokenBBalance) = try await (
             apiClient.getTokenAccountBalance(pubkey: tokenAccountA, commitment: nil),
             apiClient.getTokenAccountBalance(pubkey: tokenAccountB, commitment: nil)
@@ -177,5 +145,56 @@ private struct MockAccountStorage: SolanaAccountStorage {
     
     func save(_ account: Account) throws {
         // do nothing
+    }
+}
+
+public class MockSolanaAPIClient2: BaseMockSolanaAPIClient {
+    
+    public override func getTokenAccountBalance(pubkey: String, commitment: Commitment?) async throws -> TokenAccountBalance {
+        switch pubkey {
+        case "FdiTt7XQ94fGkgorywN1GuXqQzmURHCDgYtUutWRcy4q":
+            return TokenAccountBalance(amount: 389.627856679, decimals: 9)
+        case "7VcwKUtdKnvcgNhZt5BQHsbPrXLxhdVomsgrr7k2N5P5":
+            return TokenAccountBalance(amount: 27053.369728, decimals: 6)
+        case "DTb8NKsfhEJGY1TrA7RXN6MBiTrjnkdMAfjPEjtmTT3M":
+            return TokenAccountBalance(amount: 27053.369728, decimals: 6)
+        case "E8erPjPEorykpPjFV9yUYMYigEWKQUxuGfL2rJKLJ3KU":
+            return TokenAccountBalance(amount: 27053.369728, decimals: 6)
+        default:
+            return TokenAccountBalance(amount: 27053.369728, decimals: 6)
+        }
+    }
+    
+    public override func getMinimumBalanceForRentExemption(dataLength: UInt64, commitment: Commitment? = "recent") async throws -> UInt64 {
+        2039280
+    }
+    
+    public func getMinimumBalanceForRentExemption(span: UInt64) async throws -> UInt64 {
+        2039280
+    }
+    
+    public override func getFees(commitment: Commitment? = nil) async throws -> Fee {
+        .init(feeCalculator: .init(lamportsPerSignature: 5000), feeRateGovernor: nil, blockhash: "ADZgUVaAfUx5ehFXivdaUSHucpNdk4VqGSdN4TjttWgr", lastValidSlot: 133257026)
+    }
+    
+    public override func getRecentBlockhash(commitment: Commitment? = nil) async throws -> String {
+        "NS37crgkUQQwwFjdEdWNQFCyatLGN68F55FG2Hv4FFS"
+    }
+    
+    public override func sendTransaction(transaction: String, configs: RequestConfiguration = RequestConfiguration(encoding: "base64")!) async throws -> TransactionID {
+        return ""
+    }
+}
+
+public class MockNetworkManager: NetworkManager {
+    public func requestData(request: URLRequest) async throws -> Data {
+        // Simulate transaction json
+        return "{\"jsonrpc\":\"2.0\",\"result\":{\"context\":{\"slot\":133610519},\"value\":{\"accounts\":null,\"err\":null,\"logs\":[\"Program 11111111111111111111111111111111 invoke [1]\",\"Program 11111111111111111111111111111111 success\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]\",\"Program log: Instruction: InitializeAccount\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 3392 of 200000 compute units\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success\",\"Program DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1 invoke [1]\",\"Program log: Instruction: Swap\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]\",\"Program log: Instruction: Transfer\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 2755 of 182466 compute units\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]\",\"Program log: Instruction: Transfer\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 2643 of 176749 compute units\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success\",\"Program DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1 consumed 26775 of 200000 compute units\",\"Program DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1 success\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]\",\"Program log: Instruction: CloseAccount\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 1713 of 200000 compute units\",\"Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success\"],\"unitsConsumed\":31880}},\"id\":\"345443BB-2FC6-4935-8F52-7D031BAE345B\"}\n".data(using: .utf8) ?? Data()
+    }
+}
+
+public class BaseMockSolanaAPIClient: JSONRPCAPIClient {
+    public override init(endpoint: APIEndPoint, networkManager: NetworkManager) {
+        super.init(endpoint: endpoint, networkManager: MockNetworkManager())
     }
 }
