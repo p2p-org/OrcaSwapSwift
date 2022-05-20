@@ -15,7 +15,7 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "OrcaSwapSwift",
-            targets: ["OrcaSwapSwift"]),
+            targets: ["OrcaSwapSwift"])
     ],
     dependencies: [
         .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3297")
@@ -29,8 +29,16 @@ let package = Package(
                 .product(name: "SolanaSwift", package: "solana-swift")
             ]
         ),
+        .target(
+            name: "OrcaSwapSwiftCommonTest",
+            dependencies: ["OrcaSwapSwift"]
+        ),
+        .target(name: "OrcaSwapSwiftTestsCommon", dependencies: ["OrcaSwapSwift"], path: "Tests/OrcaSwapSwiftTestsCommon"),
         .testTarget(
             name: "OrcaSwapSwiftTests",
-            dependencies: ["OrcaSwapSwift"]),
+            dependencies: ["OrcaSwapSwift", "OrcaSwapSwiftTestsCommon"]),
+        .testTarget(
+            name: "OrcaSwapSwiftIntegrationTests",
+            dependencies: ["OrcaSwapSwift", "OrcaSwapSwiftTestsCommon"]),
     ]
 )

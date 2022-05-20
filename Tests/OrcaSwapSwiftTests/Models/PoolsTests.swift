@@ -1,6 +1,7 @@
 import XCTest
 @testable import SolanaSwift
 @testable import OrcaSwapSwift
+@testable import OrcaSwapSwiftTestsCommon
 
 class PoolsTestsTests: XCTestCase {
     

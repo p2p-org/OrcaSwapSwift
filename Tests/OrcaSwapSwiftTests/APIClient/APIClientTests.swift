@@ -1,5 +1,6 @@
 import XCTest
 import OrcaSwapSwift
+@testable import OrcaSwapSwiftTestsCommon
 
 class APIClientTests: XCTestCase {
     private let client = APIClient(configsProvider: MockConfigsProvider())

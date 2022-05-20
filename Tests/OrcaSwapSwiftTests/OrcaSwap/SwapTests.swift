@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 @testable import SolanaSwift
 @testable import OrcaSwapSwift
+@testable import OrcaSwapSwiftTestsCommon
 
 final class SwapTests: XCTestCase {
     // MARK: - Properties

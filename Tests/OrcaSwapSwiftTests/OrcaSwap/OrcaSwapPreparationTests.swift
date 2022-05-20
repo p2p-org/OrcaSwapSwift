@@ -1,6 +1,7 @@
 import XCTest
 @testable import SolanaSwift
 @testable import OrcaSwapSwift
+@testable import OrcaSwapSwiftTestsCommon
 
 class OrcaSwapPreparationTests: XCTestCase {
     let btcMint = "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E"
