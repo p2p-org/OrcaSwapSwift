@@ -210,7 +210,7 @@ public class OrcaSwap: OrcaSwapType {
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
     ) async throws -> FeeAmount {
-        guard let owner = try? accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
+        guard let owner = accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
         var numberOfTransactions: UInt64 = 1
@@ -362,7 +362,7 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         isSimulation: Bool
     ) async throws -> SwapResponse {
-        guard let owner = try? accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
+        guard let owner = accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
         
         let (swapTransactions, newAccount) = try await prepareForSwapping(
             fromWalletPubkey: fromWalletPubkey,
@@ -486,7 +486,7 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         minRenExemption: Lamports
     ) async throws -> (PreparedSwapTransaction, String?) {
-        guard let owner = try? accountStorage.account else { throw OrcaSwapError.unauthorized }
+        guard let owner = accountStorage.account else { throw OrcaSwapError.unauthorized }
         guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
         let (accountInstructions, accountCreationFee) = try await [pool].constructExchange(
@@ -524,7 +524,7 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         minRenExemption: Lamports
     ) async throws -> (PreparedSwapTransaction, String?) {
-        guard let owner = try? accountStorage.account else { throw OrcaSwapError.unauthorized }
+        guard let owner = accountStorage.account else { throw OrcaSwapError.unauthorized }
         guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
         var (accountInstructions, accountCreationFee) = try await [pool0, pool1].constructExchange(
@@ -567,7 +567,7 @@ public class OrcaSwap: OrcaSwapType {
         minRenExemption: Lamports
     ) async throws -> (PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?) /*intermediaryTokenAddress, destination token address, WSOL account and instructions, account creation fee*/ {
         
-        guard let owner = try? accountStorage.account,
+        guard let owner = accountStorage.account,
               let intermediaryTokenMint = try? info?.tokens[pool0.tokenBName]?.mint.toPublicKey(),
               let destinationMint = try? info?.tokens[pool1.tokenBName]?.mint.toPublicKey()
         else { throw OrcaSwapError.unauthorized }
