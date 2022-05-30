@@ -29,6 +29,15 @@
         }
       },
       {
+        "package": "Cuckoo",
+        "repositoryURL": "https://github.com/Brightify/Cuckoo.git",
+        "state": {
+          "branch": null,
+          "revision": "69c1c9aee64ec08a14461deb20878bd7ebeb9459",
+          "version": "1.7.1"
+        }
+      },
+      {
         "package": "LoggerSwift",
         "repositoryURL": "https://github.com/bigearsenal/loggerswift.git",
         "state": {

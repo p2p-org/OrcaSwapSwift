@@ -18,7 +18,8 @@ let package = Package(
             targets: ["OrcaSwapSwift"])
     ],
     dependencies: [
-        .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3297")
+        .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3297"),
+        .package(url: "https://github.com/Brightify/Cuckoo.git", .upToNextMajor(from: "1.5.0"))
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,7 +32,7 @@ let package = Package(
         ),
         .target(
             name: "OrcaSwapSwiftCommonTest",
-            dependencies: ["OrcaSwapSwift"]
+            dependencies: ["OrcaSwapSwift", "Cuckoo"]
         ),
         .target(name: "OrcaSwapSwiftTestsCommon", dependencies: ["OrcaSwapSwift"], path: "Tests/OrcaSwapSwiftTestsCommon"),
         .testTarget(
