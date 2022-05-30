@@ -32,14 +32,14 @@ let package = Package(
         ),
         .target(
             name: "OrcaSwapSwiftCommonTest",
-            dependencies: ["OrcaSwapSwift", "Cuckoo"]
+            dependencies: ["OrcaSwapSwift"]
         ),
         .target(name: "OrcaSwapSwiftTestsCommon", dependencies: ["OrcaSwapSwift"], path: "Tests/OrcaSwapSwiftTestsCommon"),
         .testTarget(
             name: "OrcaSwapSwiftTests",
-            dependencies: ["OrcaSwapSwift", "OrcaSwapSwiftTestsCommon"]),
+            dependencies: ["OrcaSwapSwift", "OrcaSwapSwiftTestsCommon", "Cuckoo"]),
         .testTarget(
             name: "OrcaSwapSwiftIntegrationTests",
-            dependencies: ["OrcaSwapSwift", "OrcaSwapSwiftTestsCommon"]),
+            dependencies: ["OrcaSwapSwift", "OrcaSwapSwiftTestsCommon", "Cuckoo"]),
     ]
 )
