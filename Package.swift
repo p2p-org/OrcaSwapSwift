@@ -18,7 +18,7 @@ let package = Package(
             targets: ["OrcaSwapSwift"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/p2p-org/solana-swift.git", branch: "refactor/pwn-3297")
+        .package(url: "https://github.com/p2p-org/solana-swift.git", from: "2.0.1")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
