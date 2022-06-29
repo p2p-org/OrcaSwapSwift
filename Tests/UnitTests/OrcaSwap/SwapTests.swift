@@ -138,7 +138,7 @@ private extension OrcaSwapSwift.Pool {
 private struct MockAccountStorage: SolanaAccountStorage {
     let _account: Account
     var account: Account? {
-        get throws {
+        get {
             _account
         }
     }

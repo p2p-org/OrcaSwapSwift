@@ -108,10 +108,12 @@ public class OrcaSwap: OrcaSwapType {
         
         // retrieve all routes
         var poolsPairs = [PoolsPair]()
+        try Task.checkCancellation()
         try await withThrowingTaskGroup(of: [Pool]?.self) {group in
             for route in currentRoutes where route.count <= 2 {
                 group.addTask { [weak self] in
                     guard let self = self else {return nil}
+                    try Task.checkCancellation()
                     return try await self.getPools(
                         forRoute: route,
                         fromTokenName: fromTokenName,
@@ -121,6 +123,7 @@ public class OrcaSwap: OrcaSwapType {
             }
             
             for try await pools in group {
+                try Task.checkCancellation()
                 guard let pools = pools else {continue}
                 poolsPairs.append(pools)
             }
