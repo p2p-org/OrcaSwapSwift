@@ -20,7 +20,14 @@ class OrcaSwapPreparationTests: XCTestCase {
             apiClient: APIClient(configsProvider: MockConfigsProvider()),
             solanaClient: solanaAPIClient,
             blockchainClient: blockchainClient,
-            accountStorage: MockAccountStorage()
+            accountStorage: MockAccountStorage(
+                _account: try await Account(
+                    phrase: "miracle pizza supply useful steak border same again youth silver access hundred"
+                        .components(separatedBy: " "),
+                    network: .mainnetBeta,
+                    derivablePath: .init(type: .deprecated, walletIndex: 0)
+                )
+            )
         )
         try await orcaSwap.load()
     }
@@ -237,14 +244,10 @@ private class MockSolanaAPIClient: JSONRPCAPIClient {
 }
 
 private struct MockAccountStorage: SolanaAccountStorage {
+    let _account: Account
     var account: Account? {
-        get throws {
-            try? .init(
-                phrase: "miracle pizza supply useful steak border same again youth silver access hundred"
-                    .components(separatedBy: " "),
-                network: .mainnetBeta,
-                derivablePath: .init(type: .deprecated, walletIndex: 0)
-            )
+        get {
+            _account
         }
     }
     
