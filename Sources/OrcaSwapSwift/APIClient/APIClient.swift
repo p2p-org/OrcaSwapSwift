@@ -11,9 +11,7 @@ public protocol OrcaSwapAPIClient {
     var configsProvider: OrcaSwapConfigsProvider {get}
     func reload() async throws
     func getTokens() async throws -> [String: TokenValue]
-    func getAquafarms() async throws -> [String: Aquafarm]
     func getPools() async throws -> [String: Pool]
-    func getProgramID() async throws -> ProgramIDS
 }
 
 extension OrcaSwapAPIClient {
@@ -24,26 +22,20 @@ extension OrcaSwapAPIClient {
     
     public func getTokens() async throws -> [String: TokenValue] {
         let data = try await configsProvider.getConfigs()
-        let configs = try JSONDecoder().decode(OrcaConfigs.self, from: data)
-        return configs.tokens
-    }
-    
-    public func getAquafarms() async throws -> [String: Aquafarm] {
-        let data = try await configsProvider.getConfigs()
-        let configs = try JSONDecoder().decode(OrcaConfigs.self, from: data)
-        return configs.aquafarms
+        let response = try JSONDecoder().decode(OrcaInfoResponse.self, from: data)
+        return response.value.tokens
     }
     
     public func getPools() async throws -> [String: Pool] {
         let data = try await configsProvider.getConfigs()
-        let configs = try JSONDecoder().decode(OrcaConfigs.self, from: data)
-        return configs.pools
+        let response = try JSONDecoder().decode(OrcaInfoResponse.self, from: data)
+        return response.value.pools
     }
-    
+
     public func getProgramID() async throws -> ProgramIDS {
         let data = try await configsProvider.getConfigs()
-        let configs = try JSONDecoder().decode(OrcaConfigs.self, from: data)
-        return configs.programIDS
+        let response = try JSONDecoder().decode(OrcaInfoResponse.self, from: data)
+        return response.value.programIds
     }
 }
 
