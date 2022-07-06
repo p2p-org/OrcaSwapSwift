@@ -5,5 +5,5 @@
 xcuserdata/
 DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
-/Tests/Resources/direct-swap-tests.json
-/Tests/Resources/transitive-swap-tests.json
+./Tests/Resources/direct-swap-tests.json
+./Tests/Resources/transitive-swap-tests.json

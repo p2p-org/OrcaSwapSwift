@@ -6,118 +6,17 @@
 //
 
 import Foundation
-import RxSwift
 import SolanaSwift
 
 public typealias Pools = [String: Pool] // [poolId: string]: PoolConfig;
 public typealias PoolsPair = [Pool]
-
-private var balancesCache = [String: SolanaSDK.TokenAccountBalance]()
 private let lock = NSLock()
-
-extension Pools {
-    func getPools(
-        forRoute route: Route,
-        fromTokenName: String,
-        toTokenName: String,
-        solanaClient: OrcaSwapSolanaClient
-    ) -> Single<[Pool]> {
-        guard route.count > 0 else {return .just([])}
-        
-        let requests = route.map {fixedPool(forPath: $0, solanaClient: solanaClient)}
-        return Single.zip(requests).map {$0.compactMap {$0}}
-            .map { pools in
-                var pools = pools
-                
-                // modify orders
-                if pools.count == 2 {
-                    // reverse order of the 2 pools
-                    // Ex: Swap from SOCN -> BTC, but paths are
-                    // [
-                    //     "BTC/SOL[aquafarm]",
-                    //     "SOCN/SOL[stable][aquafarm]"
-                    // ]
-                    // Need to change to
-                    // [
-                    //     "SOCN/SOL[stable][aquafarm]",
-                    //     "BTC/SOL[aquafarm]"
-                    // ]
-                    
-                    if pools[0].tokenAName != fromTokenName && pools[0].tokenBName != fromTokenName {
-                        let temp = pools[0]
-                        pools[0] = pools[1]
-                        pools[1] = temp
-                    }
-                }
-
-                // reverse token A and token B in pool if needed
-                for i in 0..<pools.count {
-                    if i == 0 {
-                        var pool = pools[0]
-                        if pool.tokenAName.fixedTokenName != fromTokenName.fixedTokenName {
-                            pool = pool.reversed
-                        }
-                        pools[0] = pool
-                    }
-                    
-                    if i == 1 {
-                        var pool = pools[1]
-                        if pool.tokenBName.fixedTokenName != toTokenName.fixedTokenName {
-                            pool = pool.reversed
-                        }
-                        pools[1] = pool
-                    }
-                }
-                return pools
-            }
-    }
-    
-    private func fixedPool(
-        forPath path: String, // Ex. BTC/SOL[aquafarm][stable]
-        solanaClient: OrcaSwapSolanaClient
-    ) -> Single<Pool?> {
-        guard var pool = self[path] else {return .just(nil)}
-        
-        if path.contains("[stable]") {
-            pool.isStable = true
-        }
-        
-        // get balances
-        lock.lock()
-        let getBalancesRequest: Single<(SolanaSDK.TokenAccountBalance, SolanaSDK.TokenAccountBalance)>
-        if let tokenABalance = pool.tokenABalance ?? balancesCache[pool.tokenAccountA],
-           let tokenBBalance = pool.tokenBBalance ?? balancesCache[pool.tokenAccountB]
-        {
-            getBalancesRequest = .just((tokenABalance, tokenBBalance))
-        } else {
-            getBalancesRequest = Single.zip(
-                solanaClient.getTokenAccountBalance(pubkey: pool.tokenAccountA, commitment: nil),
-                solanaClient.getTokenAccountBalance(pubkey: pool.tokenAccountB, commitment: nil)
-            )
-        }
-        lock.unlock()
-        
-        return getBalancesRequest
-            .do(onSuccess: {
-                lock.lock()
-                balancesCache[pool.tokenAccountA] = $0
-                balancesCache[pool.tokenAccountB] = $1
-                lock.unlock()
-            })
-            .map {tokenABalane, tokenBBalance in
-                pool.tokenABalance = tokenABalane
-                pool.tokenBBalance = tokenBBalance
-                
-                return pool
-            }
-    }
-}
 
 public extension PoolsPair {
     func constructExchange(
         tokens: [String: TokenValue],
-        solanaClient: OrcaSwapSolanaClient,
-        owner: Account,
+        blockchainClient: SolanaBlockchainClient,
+        owner: PublicKey,
         fromTokenPubkey: String,
         intermediaryTokenAddress: String? = nil,
         toTokenPubkey: String?,
@@ -125,67 +24,64 @@ public extension PoolsPair {
         slippage: Double,
         feePayer: PublicKey?,
         minRenExemption: Lamports
-    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
-        guard count > 0 && count <= 2 else {return .error(OrcaSwapError.invalidPool)}
-        
+    ) async throws -> (AccountInstructions, Lamports /*account creation fee*/) {
+        guard count > 0 && count <= 2 else { throw OrcaSwapError.invalidPool }
+
         if count == 1 {
             // direct swap
-            return self[0]
-                .constructExchange(
-                    tokens: tokens,
-                    solanaClient: solanaClient,
-                    owner: owner,
-                    fromTokenPubkey: fromTokenPubkey,
-                    toTokenPubkey: toTokenPubkey,
-                    amount: amount,
-                    slippage: slippage,
-                    feePayer: feePayer,
-                    minRenExemption: minRenExemption
-                )
-                .map {($0.0, $0.1)}
+            return try await self[0].constructExchange(
+                tokens: tokens,
+                blockchainClient: blockchainClient,
+                owner: owner,
+                fromTokenPubkey: fromTokenPubkey,
+                toTokenPubkey: toTokenPubkey,
+                amount: amount,
+                slippage: slippage,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
         } else {
             // transitive swap
             guard let intermediaryTokenAddress = intermediaryTokenAddress else {
-                return .error(OrcaSwapError.intermediaryTokenAddressNotFound)
+                throw OrcaSwapError.intermediaryTokenAddressNotFound
             }
+            
+            guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
+            else {
+                throw OrcaSwapError.unknown
+            }
+            
+            // first construction
+            let (pool0AccountInstructions, pool0AccountCreationFee) = try await self[0].constructExchange(
+                tokens: tokens,
+                blockchainClient: blockchainClient,
+                owner: owner,
+                fromTokenPubkey: fromTokenPubkey,
+                toTokenPubkey: intermediaryTokenAddress,
+                amount: amount,
+                slippage: slippage,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
 
-            return self[0]
-                .constructExchange(
-                    tokens: tokens,
-                    solanaClient: solanaClient,
-                    owner: owner,
-                    fromTokenPubkey: fromTokenPubkey,
-                    toTokenPubkey: intermediaryTokenAddress,
-                    amount: amount,
-                    slippage: slippage,
-                    feePayer: feePayer,
-                    minRenExemption: minRenExemption
-                )
-                .flatMap { pool0AccountInstructions, pool0AccountCreationFee -> Single<(AccountInstructions, Lamports /*account creation fee*/)> in
-                    guard let amount = try self[0].getMinimumAmountOut(inputAmount: amount, slippage: slippage)
-                    else {throw OrcaSwapError.unknown}
-                    
-                    return self[1].constructExchange(
-                        tokens: tokens,
-                        solanaClient: solanaClient,
-                        owner: owner,
-                        fromTokenPubkey: intermediaryTokenAddress,
-                        toTokenPubkey: toTokenPubkey,
-                        amount: amount,
-                        slippage: slippage,
-                        feePayer: feePayer,
-                        minRenExemption: minRenExemption
-                    )
-                        .map {pool1AccountInstructions, pool1AccountCreationFee in
-                            (.init(
-                                account: pool1AccountInstructions.account,
-                                instructions: pool0AccountInstructions.instructions + pool1AccountInstructions.instructions,
-                                cleanupInstructions: pool0AccountInstructions.cleanupInstructions + pool1AccountInstructions.cleanupInstructions,
-                                signers: pool0AccountInstructions.signers + pool1AccountInstructions.signers
-                            ), pool0AccountCreationFee + pool1AccountCreationFee)
-                        }
-                }
-                .map {($0.0, $0.1)}
+            let (pool1AccountInstructions, pool1AccountCreationFee) = try await self[1].constructExchange(
+                tokens: tokens,
+                blockchainClient: blockchainClient,
+                owner: owner,
+                fromTokenPubkey: intermediaryTokenAddress,
+                toTokenPubkey: toTokenPubkey,
+                amount: amount,
+                slippage: slippage,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
+            
+            return (.init(
+                account: pool1AccountInstructions.account,
+                instructions: pool0AccountInstructions.instructions + pool1AccountInstructions.instructions,
+                cleanupInstructions: pool0AccountInstructions.cleanupInstructions + pool1AccountInstructions.cleanupInstructions,
+                signers: pool0AccountInstructions.signers + pool1AccountInstructions.signers
+            ), pool0AccountCreationFee + pool1AccountCreationFee)
         }
     }
     
@@ -355,26 +251,5 @@ public extension PoolsPair {
         let baseOutputAmountDecimal = BDouble(baseOutputAmount.convertToBalance(decimals: 0))
         
         return (baseOutputAmountDecimal - inputAmountDecimal) / baseOutputAmountDecimal * 100
-    }
-}
-
-// MARK: - Helpers
-private func createSolanaAccountAsync(network: Network) -> Single<Account> {
-    .create { observer in
-        do {
-            let account = try Account(network: network)
-            observer(.success(account))
-        } catch {
-            observer(.failure(error))
-        }
-        return Disposables.create()
-    }
-    .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
-}
-
-private extension String {
-    /// Convert  SOL[aquafarm] to SOL
-    var fixedTokenName: String {
-        components(separatedBy: "[").first!
     }
 }

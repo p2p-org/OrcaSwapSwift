@@ -8,7 +8,7 @@ struct SwapTest: Codable {
     let seedPhrase, fromMint, toMint: String
     let sourceAddress: String
     let destinationAddress: String?
-    let poolsPair: [OrcaSwapSwapTests.RawPool]
+    let poolsPair: [RawPool]
     let inputAmount: Double
     let slippage: Double
 }

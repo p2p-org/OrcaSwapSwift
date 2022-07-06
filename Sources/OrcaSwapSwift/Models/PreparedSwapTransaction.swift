@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SolanaSwift
 
 public struct PreparedSwapTransaction {
     public let instructions: [TransactionInstruction]

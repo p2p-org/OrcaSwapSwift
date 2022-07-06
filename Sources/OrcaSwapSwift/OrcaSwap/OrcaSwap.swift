@@ -1,110 +1,72 @@
 //
-//  OrcaSwap.swift
+//  File.swift
+//  
 //
-//
-//  Created by Chung Tran on 13/10/2021.
+//  Created by Chung Tran on 06/05/2022.
 //
 
 import Foundation
-import RxSwift
 import SolanaSwift
-
-private var cache: SwapInfo?
-
-public protocol OrcaSwapType {
-    func load() -> Completable
-    func getMint(tokenName: String) -> String?
-    func findPosibleDestinationMints(fromMint: String) throws -> [String]
-    func getTradablePoolsPairs(fromMint: String, toMint: String) -> Single<[PoolsPair]>
-    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
-    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
-    func getLiquidityProviderFee(
-        bestPoolsPair: PoolsPair?,
-        inputAmount: Double?,
-        slippage: Double
-    ) throws -> [UInt64]
-    func getNetworkFees(
-        myWalletsMints: [String],
-        fromWalletPubkey: String,
-        toWalletPubkey: String?,
-        bestPoolsPair: PoolsPair?,
-        inputAmount: Double?,
-        slippage: Double,
-        lamportsPerSignature: UInt64,
-        minRentExempt: UInt64
-    ) throws -> Single<SolanaSDK.FeeAmount>
-    func prepareForSwapping(
-        fromWalletPubkey: String,
-        toWalletPubkey: String?,
-        bestPoolsPair: PoolsPair,
-        amount: Double,
-        feePayer: PublicKey?, // nil if the owner is the fee payer
-        slippage: Double
-    ) -> Single<([PreparedSwapTransaction], String?)>
-    func swap(
-        fromWalletPubkey: String,
-        toWalletPubkey: String?,
-        bestPoolsPair: PoolsPair,
-        amount: Double,
-        slippage: Double,
-        isSimulation: Bool
-    ) -> Single<SwapResponse>
-}
 
 public class OrcaSwap: OrcaSwapType {
     // MARK: - Properties
+    private var cache: SwapInfo?
     let apiClient: OrcaSwapAPIClient
-    let solanaClient: OrcaSwapSolanaClient
-    let accountProvider: OrcaSwapAccountProvider
-    let notificationHandler: OrcaSwapSignatureConfirmationHandler
+    let blockchainClient: SolanaBlockchainClient
+    let solanaClient: SolanaAPIClient
+    let accountStorage: SolanaAccountStorage
     
     var info: SwapInfo?
-    private let lock = NSLock()
+    let balancesCache = BalancesCache()
+    let locker = NSLock()
     
     // MARK: - Initializer
     public init(
         apiClient: OrcaSwapAPIClient,
-        solanaClient: OrcaSwapSolanaClient,
-        accountProvider: OrcaSwapAccountProvider,
-        notificationHandler: OrcaSwapSignatureConfirmationHandler
+        solanaClient: SolanaAPIClient,
+        blockchainClient: SolanaBlockchainClient,
+        accountStorage: SolanaAccountStorage
     ) {
         self.apiClient = apiClient
         self.solanaClient = solanaClient
-        self.accountProvider = accountProvider
-        self.notificationHandler = notificationHandler
+        self.blockchainClient = blockchainClient
+        self.accountStorage = accountStorage
     }
     
     // MARK: - Methods
     /// Prepare all needed infos for swapping
-    public func load() -> Completable {
-        if info != nil {return .empty()}
-        return Single.zip(
+    public func load() async throws {
+        // already been loaded
+        if info != nil { return }
+        
+        // load
+        let (tokens, pools, programId) = try await (
             apiClient.getTokens(),
             apiClient.getPools(),
             apiClient.getProgramID()
         )
-            .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
-            .map { tokens, pools, programId -> SwapInfo in
-                let routes = findAllAvailableRoutes(tokens: tokens, pools: pools)
-                let tokenNames = tokens.reduce([String: String]()) { result, token in
-                    var result = result
-                    result[token.value.mint] = token.key
-                    return result
-                }
-                return .init(
-                    routes: routes,
-                    tokens: tokens,
-                    pools: pools,
-                    programIds: programId,
-                    tokenNames: tokenNames
-                )
-            }
-            .do(onSuccess: {[weak self] info in
-                self?.lock.lock()
-                self?.info = info
-                self?.lock.unlock()
-            })
-            .asCompletable()
+        
+        // find all available routes
+        let routes = findAllAvailableRoutes(tokens: tokens, pools: pools)
+        let tokenNames = tokens.reduce([String: String]()) { result, token in
+            var result = result
+            result[token.value.mint] = token.key
+            return result
+        }
+        
+        // create swap info
+        let swapInfo = SwapInfo(
+            routes: routes,
+            tokens: tokens,
+            pools: pools,
+            programIds: programId,
+            tokenNames: tokenNames
+        )
+        
+        // save cache
+        locker.lock()
+        info = swapInfo
+        locker.unlock()
     }
     
     /// Get token's mint address by its name
@@ -136,25 +98,38 @@ public class OrcaSwap: OrcaSwapType {
     public func getTradablePoolsPairs(
         fromMint: String,
         toMint: String
-    ) -> Single<[PoolsPair]> {
+    ) async throws -> [PoolsPair] {
+        // assertion
         guard let fromTokenName = getTokenFromMint(fromMint)?.name,
               let toTokenName = getTokenFromMint(toMint)?.name,
               let currentRoutes = try? findRoutes(fromTokenName: fromTokenName, toTokenName: toTokenName)
                 .first?.value
-        else {return .just([])}
+        else { return [] }
         
         // retrieve all routes
-        let requests: [Single<[Pool]>] = currentRoutes.compactMap {
-            guard $0.count <= 2 else {return nil} // FIXME: Support more than 2 paths later
-            return info?.pools.getPools(
-                forRoute: $0,
-                fromTokenName: fromTokenName,
-                toTokenName: toTokenName,
-                solanaClient: solanaClient
-            )
+        var poolsPairs = [PoolsPair]()
+        try Task.checkCancellation()
+        try await withThrowingTaskGroup(of: [Pool]?.self) {group in
+            for route in currentRoutes where route.count <= 2 {
+                group.addTask { [weak self] in
+                    guard let self = self else {return nil}
+                    try Task.checkCancellation()
+                    return try await self.getPools(
+                        forRoute: route,
+                        fromTokenName: fromTokenName,
+                        toTokenName: toTokenName
+                    )
+                }
+            }
+            
+            for try await pools in group {
+                try Task.checkCancellation()
+                guard let pools = pools else {continue}
+                poolsPairs.append(pools)
+            }
         }
         
-        return Single.zip(requests)
+        return poolsPairs
     }
     
     /// Find best pool to swap from input amount
@@ -237,8 +212,8 @@ public class OrcaSwap: OrcaSwapType {
         slippage: Double,
         lamportsPerSignature: UInt64,
         minRentExempt: UInt64
-    ) throws -> Single<SolanaSDK.FeeAmount> {
-        guard let owner = accountProvider.getNativeWalletAddress() else {throw OrcaSwapError.unauthorized}
+    ) async throws -> FeeAmount {
+        guard let owner = accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
         
         let numberOfPools = UInt64(bestPoolsPair?.count ?? 0)
         var numberOfTransactions: UInt64 = 1
@@ -254,7 +229,7 @@ public class OrcaSwap: OrcaSwapType {
             }
         }
         
-        var expectedFee = SolanaSDK.FeeAmount.zero
+        var expectedFee = FeeAmount.zero
 
         // fee for owner's signature
         expectedFee.transaction += numberOfTransactions * lamportsPerSignature
@@ -267,7 +242,7 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         // when there is intermediary token
-        var isIntermediaryTokenCreatedRequest = Single<Bool>.just(true)
+        var isIntermediaryTokenCreated = true
         if numberOfPools == 2,
            let decimals = bestPoolsPair![0].tokenABalance?.decimals,
            let inputAmount = inputAmount,
@@ -286,7 +261,8 @@ public class OrcaSwap: OrcaSwapType {
             
             // Check if intermediary token creation is needed
             else {
-                isIntermediaryTokenCreatedRequest = solanaClient.checkIfAssociatedTokenAccountExists(owner: owner, mint: mint)
+                isIntermediaryTokenCreated = try await solanaClient
+                    .checkIfAssociatedTokenAccountExists(owner: owner, mint: mint)
             }
         }
         
@@ -301,15 +277,12 @@ public class OrcaSwap: OrcaSwapType {
             expectedFee.deposit += minRentExempt
         }
         
-        return isIntermediaryTokenCreatedRequest
-            .map {!$0}
-            .map { needsCreateIntermediaryToken in
-                // Intermediary token needs to be created, so add the fee
-                if needsCreateIntermediaryToken {
-                    expectedFee.accountBalances += minRentExempt
-                }
-                return expectedFee
-            }
+        // add aditional fee if intermediary token is NOT yet created
+        if !isIntermediaryTokenCreated {
+            expectedFee.accountBalances += minRentExempt
+        }
+        
+        return expectedFee
     }
     
     /// Execute swap
@@ -320,30 +293,29 @@ public class OrcaSwap: OrcaSwapType {
         amount: Double,
         feePayer: PublicKey?,
         slippage: Double
-    ) -> Single<([PreparedSwapTransaction], String? /*New created account*/)> {
-        guard bestPoolsPair.count > 0 else {return .error(OrcaSwapError.swapInfoMissing)}
+    ) async throws -> ([PreparedSwapTransaction], String? /*New created account*/) {
+        guard bestPoolsPair.count > 0 else {
+            throw OrcaSwapError.swapInfoMissing
+        }
         guard let fromDecimals = bestPoolsPair[0].tokenABalance?.decimals else {
-            return .error(OrcaSwapError.invalidPool)
+            throw OrcaSwapError.invalidPool
         }
         
         let amount = amount.toLamport(decimals: fromDecimals)
         
-        let minRenExemptionRequest = solanaClient.getMinimumBalanceForRentExemption(span: 165)
+        let minRenExemption = try await solanaClient.getMinimumBalanceForRentExemption(span: 165)
         
         if bestPoolsPair.count == 1 {
-            return minRenExemptionRequest.flatMap { [weak self] minRenExemption in
-                guard let self = self else {throw OrcaSwapError.unknown}
-                return self.directSwap(
-                    pool: bestPoolsPair[0],
-                    fromTokenPubkey: fromWalletPubkey,
-                    toTokenPubkey: toWalletPubkey,
-                    amount: amount,
-                    feePayer: feePayer,
-                    slippage: slippage,
-                    minRenExemption: minRenExemption
-                )
-                    .map {([$0.0], $0.1)}
-            }
+            let directSwap = try await directSwap(
+                pool: bestPoolsPair[0],
+                fromTokenPubkey: fromWalletPubkey,
+                toTokenPubkey: toWalletPubkey,
+                amount: amount,
+                feePayer: feePayer,
+                slippage: slippage,
+                minRenExemption: minRenExemption
+            )
+            return ([directSwap.0], directSwap.1)
         } else {
             let pool0 = bestPoolsPair[0]
             let pool1 = bestPoolsPair[1]
@@ -353,41 +325,34 @@ public class OrcaSwap: OrcaSwapType {
             // SECOND TRANSACTION TAKE THE RESULT OF FIRST TRANSACTION (ADDRESSES) TO REDUCE ITS SIZE. **IF INTERMEDIATE TOKEN OR DESTINATION TOKEN IS WSOL, IT SHOULD BE INCLUDED IN THIS TRANSACTION**
             
             // First transaction
-            return minRenExemptionRequest.flatMap { [weak self] minRenExemption -> Single<(PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?, Lamports)> in
-                guard let self = self else {throw OrcaSwapError.unknown}
-                return self.createIntermediaryTokenAndDestinationTokenAddressIfNeeded(
-                    pool0: pool0,
-                    pool1: pool1,
-                    toWalletPubkey: toWalletPubkey,
-                    feePayer: feePayer,
-                    minRenExemption: minRenExemption
-                ).map {($0.0, $0.1, $0.2, $0.3, minRenExemption)}
+            let (intermediaryTokenAddress, destinationTokenAddress, wsolAccountInstructions, preparedTransaction) = try await createIntermediaryTokenAndDestinationTokenAddressIfNeeded(
+                pool0: pool0,
+                pool1: pool1,
+                toWalletPubkey: toWalletPubkey,
+                feePayer: feePayer,
+                minRenExemption: minRenExemption
+            )
+            
+            let (transaction, newAccount) = try await transitiveSwap(
+                pool0: pool0,
+                pool1: pool1,
+                fromTokenPubkey: fromWalletPubkey,
+                intermediaryTokenAddress: intermediaryTokenAddress.base58EncodedString,
+                destinationTokenAddress: destinationTokenAddress.base58EncodedString,
+                feePayer: feePayer,
+                wsolAccountInstructions: wsolAccountInstructions,
+                isDestinationNew: toWalletPubkey == nil,
+                amount: amount,
+                slippage: slippage,
+                minRenExemption: minRenExemption
+            )
+            
+            var transactions = [PreparedSwapTransaction]()
+            if let preparedTransaction = preparedTransaction {
+                transactions.append(preparedTransaction)
             }
-                .flatMap {[weak self] intermediaryTokenAddress, destinationTokenAddress, wsolAccountInstructions, preparedTransaction, minRenExemption in
-                    guard let self = self else {throw OrcaSwapError.unknown}
-                    // Second transaction
-                    return self.transitiveSwap(
-                        pool0: pool0,
-                        pool1: pool1,
-                        fromTokenPubkey: fromWalletPubkey,
-                        intermediaryTokenAddress: intermediaryTokenAddress.base58EncodedString,
-                        destinationTokenAddress: destinationTokenAddress.base58EncodedString,
-                        feePayer: feePayer,
-                        wsolAccountInstructions: wsolAccountInstructions,
-                        isDestinationNew: toWalletPubkey == nil,
-                        amount: amount,
-                        slippage: slippage,
-                        minRenExemption: minRenExemption
-                    )
-                        .map {
-                            var transactions = [PreparedSwapTransaction]()
-                            if let preparedTransaction = preparedTransaction {
-                                transactions.append(preparedTransaction)
-                            }
-                            transactions.append($0.0)
-                            return (transactions, $0.1)
-                        }
-                }
+            transactions.append(transaction)
+            return (transactions, newAccount)
         }
     }
     
@@ -399,8 +364,10 @@ public class OrcaSwap: OrcaSwapType {
         amount: Double,
         slippage: Double,
         isSimulation: Bool
-    ) -> Single<SwapResponse> {
-        prepareForSwapping(
+    ) async throws -> SwapResponse {
+        guard let owner = accountStorage.account?.publicKey else {throw OrcaSwapError.unauthorized}
+        
+        let (swapTransactions, newAccount) = try await prepareForSwapping(
             fromWalletPubkey: fromWalletPubkey,
             toWalletPubkey: toWalletPubkey,
             bestPoolsPair: bestPoolsPair,
@@ -408,74 +375,74 @@ public class OrcaSwap: OrcaSwapType {
             feePayer: nil,
             slippage: slippage
         )
-            .flatMap { [weak self] params in
-                guard let self = self else {throw OrcaSwapError.unknown}
-                guard let owner = self.accountProvider.getAccount()?.publicKey else {throw OrcaSwapError.unauthorized}
-                let swapTransactions = params.0
-                guard swapTransactions.count > 0 && swapTransactions.count <= 2 else {
-                    throw OrcaSwapError.invalidNumberOfTransactions
-                }
-                var request = self.prepareAndSend(
-                    swapTransactions[0],
-                    feePayer: owner,
-                    isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
-                )
-                if swapTransactions.count == 2 {
-                    request = request
-                        .flatMapCompletable { [weak self] txid in
-                            guard let self = self else {throw OrcaSwapError.unknown}
-                            return self.notificationHandler.waitForConfirmation(signature: txid)
+        
+        guard swapTransactions.count > 0 && swapTransactions.count <= 2 else {
+            throw OrcaSwapError.invalidNumberOfTransactions
+        }
+        
+        let txid = try await prepareAndSend(
+            swapTransactions[0],
+            feePayer: owner,
+            isSimulation: swapTransactions.count == 2 ? false: isSimulation // the first transaction in transitive swap must be non-simulation
+        )
+        
+        if swapTransactions.count <= 1 {
+            return .init(transactionId: txid, newWalletPubkey: newAccount)
+        }
+        
+        else {
+            // wait maximum 60s to make sure that signature is confirmed
+            try await solanaClient.waitForConfirmation(signature: txid, ignoreStatus: true)
+            
+            // send second transaction anyway
+            let txid2 = try await Task.retrying(
+                where: { error in
+                    if let error = error as? SolanaError {
+                        switch error {
+                        case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
+                            return true
+                        case .transactionError(_, logs: let logs) where logs.contains("Program log: Error: InvalidAccountData"):
+                            return true
+                        default:
+                            break
                         }
-                        .andThen(
-                            self.prepareAndSend(
-                                swapTransactions[1],
-                                feePayer: owner,
-                                isSimulation: isSimulation
-                            )
-                                .retry { errors in
-                                    errors.enumerated().flatMap{ (index, error) -> Observable<Int64> in
-                                        if let error = error as? SolanaSDK.Error {
-                                            switch error {
-                                            case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
-                                                return .timer(.seconds(1), scheduler: MainScheduler.instance)
-                                            case .transactionError(_, logs: let logs) where logs.contains("Program log: Error: InvalidAccountData"):
-                                                return .timer(.seconds(1), scheduler: MainScheduler.instance)
-                                            default:
-                                                break
-                                            }
-                                        }
-                                        
-                                        return .error(error)
-                                    }
-                                }
-                                .timeout(.seconds(60), scheduler: MainScheduler.instance)
-                        )
-                }
-                return request
-                    .map {.init(transactionId: $0, newWalletPubkey: params.1)}
+                    }
+                    return false
+                },
+                maxRetryCount: .max,
+                retryDelay: 1,
+                timeoutInSeconds: 60
+            ) {
+                try await self.prepareAndSend(
+                    swapTransactions[1],
+                    feePayer: owner,
+                    isSimulation: isSimulation
+                )
             }
+                .value
+            
+            return .init(transactionId: txid2, newWalletPubkey: newAccount)
+        }
     }
     
     func prepareAndSend(
         _ swapTransaction: PreparedSwapTransaction,
         feePayer: PublicKey,
         isSimulation: Bool
-    ) -> Single<String> {
-        solanaClient.prepareTransaction(
+    ) async throws -> String {
+        let preparedTransaction = try await blockchainClient.prepareTransaction(
             instructions: swapTransaction.instructions,
             signers: swapTransaction.signers,
             feePayer: feePayer,
-            accountsCreationFee: swapTransaction.accountCreationFee,
-            recentBlockhash: nil,
-            lamportsPerSignature: nil
+            feeCalculator: nil
         )
-            .flatMap { [weak self] preparedTransaction in
-                guard let self = self else {throw OrcaSwapError.unknown}
-                return self.solanaClient.serializeAndSend(
-                    preparedTransaction: preparedTransaction,
-                    isSimulation: isSimulation
-                )
-            }
+        
+        if isSimulation {
+            let _ = try await blockchainClient.simulateTransaction(preparedTransaction: preparedTransaction)
+            return ""
+        }
+        
+        return try await blockchainClient.sendTransaction(preparedTransaction: preparedTransaction)
     }
     
     /// Find routes for from and to token name, aka symbol
@@ -521,32 +488,30 @@ public class OrcaSwap: OrcaSwapType {
         feePayer: PublicKey?,
         slippage: Double,
         minRenExemption: Lamports
-    ) -> Single<(PreparedSwapTransaction, String?)> {
-        guard let owner = accountProvider.getAccount() else {return .error(OrcaSwapError.unauthorized)}
-        guard let info = info else {return .error(OrcaSwapError.swapInfoMissing)}
+    ) async throws -> (PreparedSwapTransaction, String?) {
+        guard let owner = accountStorage.account else { throw OrcaSwapError.unauthorized }
+        guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
-        return [pool]
-            .constructExchange(
-                tokens: info.tokens,
-                solanaClient: self.solanaClient,
-                owner: owner,
-                fromTokenPubkey: fromTokenPubkey,
-                toTokenPubkey: toTokenPubkey,
-                amount: amount,
-                slippage: slippage,
-                feePayer: feePayer,
-                minRenExemption: minRenExemption
-            )
-            .map {accountInstructions, accountCreationFee in
-                (
-                    .init(
-                        instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
-                        signers: [owner] + accountInstructions.signers,
-                        accountCreationFee: accountCreationFee
-                    ),
-                    toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil
-                 )
-            }
+        let (accountInstructions, accountCreationFee) = try await [pool].constructExchange(
+            tokens: info.tokens,
+            blockchainClient: blockchainClient,
+            owner: owner.publicKey,
+            fromTokenPubkey: fromTokenPubkey,
+            toTokenPubkey: toTokenPubkey,
+            amount: amount,
+            slippage: slippage,
+            feePayer: feePayer,
+            minRenExemption: minRenExemption
+        )
+        
+        return (
+            .init(
+                instructions: accountInstructions.instructions + accountInstructions.cleanupInstructions,
+                signers: [owner] + accountInstructions.signers,
+                accountCreationFee: accountCreationFee
+            ),
+            toTokenPubkey == nil ? accountInstructions.account.base58EncodedString: nil
+        )
     }
     
     private func transitiveSwap(
@@ -561,44 +526,40 @@ public class OrcaSwap: OrcaSwapType {
         amount: UInt64,
         slippage: Double,
         minRenExemption: Lamports
-    ) -> Single<(PreparedSwapTransaction, String?)> {
-        guard let owner = accountProvider.getAccount() else {return .error(OrcaSwapError.unauthorized)}
-        guard let info = info else {return .error(OrcaSwapError.swapInfoMissing)}
+    ) async throws -> (PreparedSwapTransaction, String?) {
+        guard let owner = accountStorage.account else { throw OrcaSwapError.unauthorized }
+        guard let info = info else { throw OrcaSwapError.swapInfoMissing }
         
-        return [pool0, pool1]
-            .constructExchange(
-                tokens: info.tokens,
-                solanaClient: solanaClient,
-                owner: owner,
-                fromTokenPubkey: fromTokenPubkey,
-                intermediaryTokenAddress: intermediaryTokenAddress,
-                toTokenPubkey: destinationTokenAddress,
-                amount: amount,
-                slippage: slippage,
-                feePayer: feePayer,
-                minRenExemption: minRenExemption
-            )
-            .map { accountInstructions, accountCreationFee in
-                var accountCreationFee = accountCreationFee
-                
-                var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
-                var additionalSigners = [Account]()
-                if let wsolAccountInstructions = wsolAccountInstructions {
-                    additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
-                    instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
-                    instructions.append(contentsOf: wsolAccountInstructions.cleanupInstructions)
-                    accountCreationFee += minRenExemption
-                }
-                
-                return (
-                    .init(
-                        instructions: instructions,
-                        signers: [owner] + additionalSigners + accountInstructions.signers,
-                        accountCreationFee: accountCreationFee
-                    ),
-                    isDestinationNew ? accountInstructions.account.base58EncodedString: nil
-                )
-            }
+        var (accountInstructions, accountCreationFee) = try await [pool0, pool1].constructExchange(
+            tokens: info.tokens,
+            blockchainClient: blockchainClient,
+            owner: owner.publicKey,
+            fromTokenPubkey: fromTokenPubkey,
+            intermediaryTokenAddress: intermediaryTokenAddress,
+            toTokenPubkey: destinationTokenAddress,
+            amount: amount,
+            slippage: slippage,
+            feePayer: feePayer,
+            minRenExemption: minRenExemption
+        )
+        
+        var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
+        var additionalSigners = [Account]()
+        if let wsolAccountInstructions = wsolAccountInstructions {
+            additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
+            instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
+            instructions.append(contentsOf: wsolAccountInstructions.cleanupInstructions)
+            accountCreationFee += minRenExemption
+        }
+        
+        return (
+            .init(
+                instructions: instructions,
+                signers: [owner] + additionalSigners + accountInstructions.signers,
+                accountCreationFee: accountCreationFee
+            ),
+            isDestinationNew ? accountInstructions.account.base58EncodedString: nil
+        )
     }
     
     private func createIntermediaryTokenAndDestinationTokenAddressIfNeeded(
@@ -607,88 +568,94 @@ public class OrcaSwap: OrcaSwapType {
         toWalletPubkey: String?,
         feePayer: PublicKey?,
         minRenExemption: Lamports
-    ) -> Single<(PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?)> /*intermediaryTokenAddress, destination token address, WSOL account and instructions, account creation fee*/ {
+    ) async throws -> (PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?) /*intermediaryTokenAddress, destination token address, WSOL account and instructions, account creation fee*/ {
         
-        guard let owner = accountProvider.getAccount(),
+        guard let owner = accountStorage.account,
               let intermediaryTokenMint = try? info?.tokens[pool0.tokenBName]?.mint.toPublicKey(),
               let destinationMint = try? info?.tokens[pool1.tokenBName]?.mint.toPublicKey()
-        else {return .error(OrcaSwapError.unauthorized)}
+        else { throw OrcaSwapError.unauthorized }
         
-        let requestCreatingIntermediaryToken: Single<AccountInstructions>
+        let createIntermediaryTokenAccountInstructions: AccountInstructions
+        let createDestinationTokenAccountInstructions: AccountInstructions
         
-        if intermediaryTokenMint == .wrappedSOLMint {
-            requestCreatingIntermediaryToken = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
-                from: owner.publicKey,
-                amount: 0,
-                payer: feePayer ?? owner.publicKey
-            )
-        } else {
-            requestCreatingIntermediaryToken = solanaClient.prepareForCreatingAssociatedTokenAccount(
-                owner: owner.publicKey,
-                mint: intermediaryTokenMint,
-                feePayer: feePayer ?? owner.publicKey,
-                closeAfterward: true
-            )
-        }
-        
-        return Single.zip(
-            requestCreatingIntermediaryToken,
-            solanaClient.prepareForCreatingAssociatedTokenAccount(
+        async let createDestinationTokenAccountInstructionsRequest = blockchainClient
+            .prepareForCreatingAssociatedTokenAccount(
                 owner: owner.publicKey,
                 mint: destinationMint,
                 feePayer: feePayer ?? owner.publicKey,
                 closeAfterward: false
             )
-        )
-            .map { intAccountInstructions, desAccountInstructions -> (PublicKey, PublicKey, AccountInstructions?, PreparedSwapTransaction?) in
-                // get all creating instructions, PASS WSOL ACCOUNT INSTRUCTIONS TO THE SECOND TRANSACTION
-                var instructions = [TransactionInstruction]()
-                var wsolAccountInstructions: AccountInstructions?
-                var accountCreationFee: UInt64 = 0
-                
-                if intermediaryTokenMint == .wrappedSOLMint {
-                    wsolAccountInstructions = intAccountInstructions
-                    wsolAccountInstructions?.cleanupInstructions = []
-                } else {
-                    instructions.append(contentsOf: intAccountInstructions.instructions)
-                    if !intAccountInstructions.instructions.isEmpty {
-                        accountCreationFee += minRenExemption
-                    }
-                    // omit clean up instructions
-                }
-                if destinationMint == .wrappedSOLMint {
-                    wsolAccountInstructions = desAccountInstructions
-                } else {
-                    instructions.append(contentsOf: desAccountInstructions.instructions)
-                    if !desAccountInstructions.instructions.isEmpty {
-                        accountCreationFee += minRenExemption
-                    }
-                }
-                
-                // if token address has already been created, then no need to send any transactions
-                if instructions.isEmpty {
-                    return (
-                        intAccountInstructions.account,
-                        desAccountInstructions.account,
-                        wsolAccountInstructions,
-                        nil
-                    )
-                }
-                
-                // if creating transaction is needed
-                else {
-                    return (
-                        intAccountInstructions.account,
-                        desAccountInstructions.account,
-                        wsolAccountInstructions,
-                        .init(
-                            instructions: instructions,
-                            signers: [owner],
-                            accountCreationFee: accountCreationFee
-                        )
-                    )
-                }
+        
+        if intermediaryTokenMint == .wrappedSOLMint {
+            (createIntermediaryTokenAccountInstructions, createDestinationTokenAccountInstructions) = try await (
+                blockchainClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                    from: owner.publicKey,
+                    amount: 0,
+                    payer: feePayer ?? owner.publicKey,
+                    minRentExemption: nil
+                ),
+                createDestinationTokenAccountInstructionsRequest
+            )
+        } else {
+            
+            (createIntermediaryTokenAccountInstructions, createDestinationTokenAccountInstructions) = try await (
+                blockchainClient.prepareForCreatingAssociatedTokenAccount(
+                    owner: owner.publicKey,
+                    mint: intermediaryTokenMint,
+                    feePayer: feePayer ?? owner.publicKey,
+                    closeAfterward: true
+                ),
+                createDestinationTokenAccountInstructionsRequest
+            )
+        }
+        
+        // get all creating instructions, PASS WSOL ACCOUNT INSTRUCTIONS TO THE SECOND TRANSACTION
+        var instructions = [TransactionInstruction]()
+        var wsolAccountInstructions: AccountInstructions?
+        var accountCreationFee: UInt64 = 0
+        
+        if intermediaryTokenMint == .wrappedSOLMint {
+            wsolAccountInstructions = createIntermediaryTokenAccountInstructions
+            wsolAccountInstructions?.cleanupInstructions = []
+        } else {
+            instructions.append(contentsOf: createIntermediaryTokenAccountInstructions.instructions)
+            if !createIntermediaryTokenAccountInstructions.instructions.isEmpty {
+                accountCreationFee += minRenExemption
             }
+            // omit clean up instructions
+        }
+        if destinationMint == .wrappedSOLMint {
+            wsolAccountInstructions = createDestinationTokenAccountInstructions
+        } else {
+            instructions.append(contentsOf: createDestinationTokenAccountInstructions.instructions)
+            if !createDestinationTokenAccountInstructions.instructions.isEmpty {
+                accountCreationFee += minRenExemption
+            }
+        }
+        
+        // if token address has already been created, then no need to send any transactions
+        if instructions.isEmpty {
+            return (
+                createIntermediaryTokenAccountInstructions.account,
+                createDestinationTokenAccountInstructions.account,
+                wsolAccountInstructions,
+                nil
+            )
+        }
+        
+        // if creating transaction is needed
+        else {
+            return (
+                createIntermediaryTokenAccountInstructions.account,
+                createDestinationTokenAccountInstructions.account,
+                wsolAccountInstructions,
+                .init(
+                    instructions: instructions,
+                    signers: [owner],
+                    accountCreationFee: accountCreationFee
+                )
+            )
+        }
     }
 }
 
@@ -765,7 +732,7 @@ private func getRoutes(tokenA: String, tokenB: String, pools: Pools) -> [Route] 
     let firstLegPools = pools
         .filter {
             ($0.value.tokenAName == tokenA && $0.value.tokenBName != tokenB) ||
-                ($0.value.tokenBName == tokenA && $0.value.tokenAName != tokenB)
+            ($0.value.tokenBName == tokenA && $0.value.tokenAName != tokenB)
         }
         .reduce([String: String]()) { result, pool in
             var result = result

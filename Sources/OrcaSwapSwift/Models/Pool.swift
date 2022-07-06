@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RxSwift
 import SolanaSwift
 
 private let N_COINS: UInt64 = 2
@@ -39,8 +38,8 @@ public struct Pool: Codable, Equatable {
     public let deprecated: Bool?
     
     // balance (lazy load)
-    var tokenABalance: SolanaSDK.TokenAccountBalance?
-    var tokenBBalance: SolanaSDK.TokenAccountBalance?
+    var tokenABalance: TokenAccountBalance?
+    var tokenBBalance: TokenAccountBalance?
     
     var isStable: Bool?
     
@@ -52,11 +51,11 @@ public struct Pool: Codable, Equatable {
         return reversedPool
     }
     
-    public func getTokenBDecimals() -> SolanaSDK.Decimals? {
+    public func getTokenBDecimals() -> Decimals? {
         tokenBBalance?.decimals
     }
     
-    public func getTokenADecimals() -> SolanaSDK.Decimals? {
+    public func getTokenADecimals() -> Decimals? {
         tokenABalance?.decimals
     }
     
@@ -103,7 +102,7 @@ extension Pool {
             feeAccount: try feeAccount.toPublicKey(),
             hostFeeAccount: try? hostFeeAccount?.toPublicKey(),
             swapProgramId: swapProgramId,
-            tokenProgramId: .tokenProgramId,
+            tokenProgramId: TokenProgram.id,
             amountIn: amountIn,
             minimumAmountOut: minAmountOut
         )
@@ -198,132 +197,124 @@ extension Pool {
     /// Construct exchange
     func constructExchange(
         tokens: [String: TokenValue],
-        solanaClient: OrcaSwapSolanaClient,
-        owner: Account,
+        blockchainClient: SolanaBlockchainClient,
+        owner: PublicKey,
         fromTokenPubkey: String,
         toTokenPubkey: String?,
         amount: Lamports,
         slippage: Double,
         feePayer: PublicKey?,
         minRenExemption: Lamports
-    ) -> Single<(AccountInstructions, Lamports /*account creation fee*/)> {
+    ) async throws -> (AccountInstructions, Lamports /*account creation fee*/) {
         guard let fromMint = try? tokens[tokenAName]?.mint.toPublicKey(),
               let toMint = try? tokens[tokenBName]?.mint.toPublicKey(),
               let fromTokenPubkey = try? fromTokenPubkey.toPublicKey()
-        else {return .error(OrcaSwapError.notFound)}
+        else { throw OrcaSwapError.notFound }
         
         // Create fromTokenAccount when needed
-        let prepareSourceRequest: Single<AccountInstructions>
+        let sourceAccountInstructions: AccountInstructions
         
         if fromMint == .wrappedSOLMint &&
-            owner.publicKey == fromTokenPubkey
+            owner == fromTokenPubkey
         {
-            prepareSourceRequest = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
-                from: owner.publicKey,
+            sourceAccountInstructions = try await blockchainClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                from: owner,
                 amount: amount,
-                payer: feePayer ?? owner.publicKey
+                payer: feePayer ?? owner,
+                minRentExemption: minRenExemption
             )
         } else {
-            prepareSourceRequest = .just(.init(account: fromTokenPubkey))
+            sourceAccountInstructions = .init(account: fromTokenPubkey)
         }
         
         // If necessary, create a TokenAccount for the output token
-        let prepareDestinationRequest: Single<AccountInstructions>
+        let destinationAccountInstructions: AccountInstructions
         
         // If destination token is Solana, create WSOL if needed
         if toMint == .wrappedSOLMint {
             if let toTokenPubkey = try? toTokenPubkey?.toPublicKey(),
-               toTokenPubkey != owner.publicKey
+               toTokenPubkey != owner
             {
                 // wrapped sol has already been created, just return it, then close later
-                prepareDestinationRequest = .just(
-                    .init(
-                        account: toTokenPubkey,
-                        cleanupInstructions: [
-                            TokenProgram.closeAccountInstruction(
-                                account: toTokenPubkey,
-                                destination: owner.publicKey,
-                                owner: owner.publicKey
-                            )
-                        ]
-                    )
+                destinationAccountInstructions = .init(
+                    account: toTokenPubkey,
+                    cleanupInstructions: [
+                        TokenProgram.closeAccountInstruction(
+                            account: toTokenPubkey,
+                            destination: owner,
+                            owner: owner
+                        )
+                    ]
                 )
             } else {
                 // create wrapped sol
-                prepareDestinationRequest = solanaClient.prepareCreatingWSOLAccountAndCloseWhenDone(
-                    from: owner.publicKey,
+                destinationAccountInstructions = try await blockchainClient.prepareCreatingWSOLAccountAndCloseWhenDone(
+                    from: owner,
                     amount: 0,
-                    payer: feePayer ?? owner.publicKey
+                    payer: feePayer ?? owner,
+                    minRentExemption: minRenExemption
                 )
             }
         }
         
         // If destination is another token and has already been created
         else if let toTokenPubkey = try? toTokenPubkey?.toPublicKey() {
-            prepareDestinationRequest = .just(.init(account: toTokenPubkey))
+            destinationAccountInstructions = .init(account: toTokenPubkey)
         }
         
         // Create associated token address
         else {
-            prepareDestinationRequest = solanaClient.prepareForCreatingAssociatedTokenAccount(
-                owner: owner.publicKey,
+            destinationAccountInstructions = try await blockchainClient.prepareForCreatingAssociatedTokenAccount(
+                owner: owner,
                 mint: toMint,
-                feePayer: feePayer ?? owner.publicKey,
+                feePayer: feePayer ?? owner,
                 closeAfterward: false
             )
         }
         
-        // Combine request
-        return Single.zip(
-            prepareSourceRequest,
-            prepareDestinationRequest
+        // form instructions
+        var instructions = [TransactionInstruction]()
+        var cleanupInstructions = [TransactionInstruction]()
+        var accountCreationFee: UInt64 = 0
+
+        // source
+        instructions.append(contentsOf: sourceAccountInstructions.instructions)
+        cleanupInstructions.append(contentsOf: sourceAccountInstructions.cleanupInstructions)
+        if !sourceAccountInstructions.instructions.isEmpty {
+            accountCreationFee += minRenExemption
+        }
+
+        // destination
+        instructions.append(contentsOf: destinationAccountInstructions.instructions)
+        cleanupInstructions.append(contentsOf: destinationAccountInstructions.cleanupInstructions)
+        if !destinationAccountInstructions.instructions.isEmpty {
+            accountCreationFee += minRenExemption
+        }
+
+        // swap instructions
+        guard let minAmountOut = try? getMinimumAmountOut(inputAmount: amount, slippage: slippage)
+        else {throw OrcaSwapError.couldNotEstimatedMinimumOutAmount}
+
+        let swapInstruction = try createSwapInstruction(
+            userTransferAuthorityPubkey: owner,
+            sourceTokenAddress: sourceAccountInstructions.account,
+            destinationTokenAddress: destinationAccountInstructions.account,
+            amountIn: amount,
+            minAmountOut: minAmountOut
         )
-            .observe(on: ConcurrentDispatchQueueScheduler(qos: .userInteractive))
-            .map { sourceAccountInstructions, destinationAccountInstructions in
-                // form instructions
-                var instructions = [TransactionInstruction]()
-                var cleanupInstructions = [TransactionInstruction]()
-                var accountCreationFee: UInt64 = 0
-                
-                // source
-                instructions.append(contentsOf: sourceAccountInstructions.instructions)
-                cleanupInstructions.append(contentsOf: sourceAccountInstructions.cleanupInstructions)
-                if !sourceAccountInstructions.instructions.isEmpty {
-                    accountCreationFee += minRenExemption
-                }
-                
-                // destination
-                instructions.append(contentsOf: destinationAccountInstructions.instructions)
-                cleanupInstructions.append(contentsOf: destinationAccountInstructions.cleanupInstructions)
-                if !destinationAccountInstructions.instructions.isEmpty {
-                    accountCreationFee += minRenExemption
-                }
-                
-                // swap instructions
-                guard let minAmountOut = try? getMinimumAmountOut(inputAmount: amount, slippage: slippage)
-                else {throw OrcaSwapError.couldNotEstimatedMinimumOutAmount}
-                
-                let swapInstruction = try createSwapInstruction(
-                    userTransferAuthorityPubkey: owner.publicKey,
-                    sourceTokenAddress: sourceAccountInstructions.account,
-                    destinationTokenAddress: destinationAccountInstructions.account,
-                    amountIn: amount,
-                    minAmountOut: minAmountOut
-                )
-                
-                instructions.append(swapInstruction)
-                
-                var signers = [Account]()
-                signers.append(contentsOf: sourceAccountInstructions.signers)
-                signers.append(contentsOf: destinationAccountInstructions.signers)
-                
-                return (.init(
-                    account: destinationAccountInstructions.account,
-                    instructions: instructions,
-                    cleanupInstructions: cleanupInstructions,
-                    signers: signers
-                ), accountCreationFee)
-            }
+
+        instructions.append(swapInstruction)
+
+        var signers = [Account]()
+        signers.append(contentsOf: sourceAccountInstructions.signers)
+        signers.append(contentsOf: destinationAccountInstructions.signers)
+
+        return (.init(
+            account: destinationAccountInstructions.account,
+            instructions: instructions,
+            cleanupInstructions: cleanupInstructions,
+            signers: signers
+        ), accountCreationFee)
     }
     
     // MARK: - Helpers

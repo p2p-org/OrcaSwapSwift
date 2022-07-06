@@ -6,8 +6,8 @@ import PackageDescription
 let package = Package(
     name: "OrcaSwapSwift",
     platforms: [
-        .macOS(.v10_12),
-        .iOS(.v10),
+        .macOS(.v10_15),
+        .iOS(.v13),
         .tvOS(.v10),
         .watchOS(.v3)
     ],
@@ -18,8 +18,7 @@ let package = Package(
             targets: ["OrcaSwapSwift"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ReactiveX/RxSwift.git", from: "6.2.0"),
-        .package(url: "https://github.com/p2p-org/solana-swift.git", from: "1.3.8")
+        .package(url: "https://github.com/p2p-org/solana-swift.git", from: "2.1.1")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,7 +30,12 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "OrcaSwapSwiftTests",
-            dependencies: ["OrcaSwapSwift",.product(name: "RxBlocking", package: "RxSwift")]),
+            name: "UnitTests",
+            dependencies: ["OrcaSwapSwift"]
+        ),
+        .testTarget(
+            name: "IntegrationTests",
+            dependencies: ["OrcaSwapSwift"]
+        ),
     ]
 )
