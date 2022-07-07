@@ -41,6 +41,8 @@ let result = try await orcaSwap.swap(
     isSimulation: false
 )
 ```
+Schema
+![OrcaSwap](https://user-images.githubusercontent.com/6975538/177728676-7042b4b2-6f40-4fd3-b751-30a58dc3585e.png)
 
 ## Unit testing
 There are 2 unit testings that are available: `OrcaSwapAPIClientTests` and `OrcaSwapPreparationTests`, the other tests are intergration tests
