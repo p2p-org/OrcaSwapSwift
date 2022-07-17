@@ -20,7 +20,7 @@ extension OrcaSwapConfigsProvider {
 public class NetworkConfigsProvider: OrcaSwapConfigsProvider {
     public let network: String
     public var cache: Data?
-    private let urlString = "https://api.orca.so/configs"
+    private let urlString = "https://orca.wallet.p2p.org/info"
     private let locker = NSLock()
     
     public init(network: String) {
