@@ -20,7 +20,7 @@ class OrcaSwapPreparationTests: XCTestCase {
             apiClient: APIClient(configsProvider: MockConfigsProvider()),
             solanaClient: solanaAPIClient,
             blockchainClient: blockchainClient,
-            accountStorage: MockAccountStorage()
+            accountStorage: await MockAccountStorage()
         )
         try await orcaSwap.load()
     }
@@ -28,15 +28,15 @@ class OrcaSwapPreparationTests: XCTestCase {
     // MARK: - Swap data
     func testLoadSwap() throws {
 //        print(routes.jsonString!.replacingOccurrences(of: #"\/"#, with: "/"))
-        XCTAssertEqual(swapInfo.routes.count, 4950)
-        XCTAssertEqual(swapInfo.tokens.count, 246)
-        XCTAssertEqual(swapInfo.pools.count, 146)
+        XCTAssertEqual(swapInfo.routes.count, 9870)
+        XCTAssertEqual(swapInfo.tokens.count, 294)
+        XCTAssertEqual(swapInfo.pools.count, 153)
         XCTAssertEqual(swapInfo.programIds.serumTokenSwap, "SwaPpA9LAaLfeLi3a68M4DjnLqgtticKg6CnyNwgAC8")
         XCTAssertEqual(swapInfo.programIds.tokenSwapV2, "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP")
         XCTAssertEqual(swapInfo.programIds.tokenSwap, "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1")
         XCTAssertEqual(swapInfo.programIds.token, .tokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA)
         XCTAssertEqual(swapInfo.programIds.aquafarm, "82yxjeMsvaURa4MbZZ7WZZHfobirZYkH1zF8fmeGtyaQ")
-        XCTAssertEqual(swapInfo.tokenNames.count, 246)
+        XCTAssertEqual(swapInfo.tokenNames.count, 294)
     }
     
     func testGetTokenMint() throws {
@@ -46,7 +46,7 @@ class OrcaSwapPreparationTests: XCTestCase {
     // MARK: - Find destinations
     func testFindDestinations() throws {
         let routes = try orcaSwap.findPosibleDestinationMints(fromMint: btcMint)
-        XCTAssertEqual(routes.count, 96)
+        XCTAssertEqual(routes.count, 99)
     }
     
     // MARK: - BTC -> ETH
@@ -237,15 +237,15 @@ private class MockSolanaAPIClient: JSONRPCAPIClient {
 }
 
 private struct MockAccountStorage: SolanaAccountStorage {
-    var account: Account? {
-        get throws {
-            try? .init(
-                phrase: "miracle pizza supply useful steak border same again youth silver access hundred"
-                    .components(separatedBy: " "),
-                network: .mainnetBeta,
-                derivablePath: .init(type: .deprecated, walletIndex: 0)
-            )
-        }
+    var account: Account?
+    
+    init() async {
+        account = try? await .init(
+            phrase: "miracle pizza supply useful steak border same again youth silver access hundred"
+                .components(separatedBy: " "),
+            network: .mainnetBeta,
+            derivablePath: .init(type: .deprecated, walletIndex: 0)
+        )
     }
     
     func save(_ account: Account) throws {

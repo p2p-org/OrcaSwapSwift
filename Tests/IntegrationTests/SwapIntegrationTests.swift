@@ -78,7 +78,7 @@ final class SwapIntegrationTests: XCTestCase {
             solanaClient: solanaAPIClient,
             blockchainClient: blockchainClient,
             accountStorage: MockAccountStorage(
-                _account: try await Account(
+                account: try await Account(
                     phrase: test.seedPhrase.components(separatedBy: " "),
                     network: network
                 )
@@ -168,11 +168,10 @@ private extension OrcaSwapSwift.Pool {
 }
 
 private struct MockAccountStorage: SolanaAccountStorage {
-    let _account: Account
-    var account: Account? {
-        get throws {
-            _account
-        }
+    let account: Account?
+    
+    init(account: Account) {
+        self.account = account
     }
     
     func save(_ account: Account) throws {
