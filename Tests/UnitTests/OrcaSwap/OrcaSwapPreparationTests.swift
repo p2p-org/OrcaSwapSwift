@@ -110,11 +110,10 @@ class OrcaSwapPreparationTests: XCTestCase {
         // needs to omit transitive swap with BTC or ETH as intermediary token
         let inputAmount: UInt64 = 1000
         let poolsPairs = try await orcaSwap.getTradablePoolsPairs(fromMint: usdcMint, toMint: stSOLMint)
-        let bestPoolsPair = try orcaSwap.findBestPoolsPairForInputAmount(inputAmount, from: poolsPairs, omitBTCETHIntermediaryToken: true)
+        let bestPoolsPair = try orcaSwap.findBestPoolsPairForInputAmount(inputAmount, from: poolsPairs, prefersDirectSwap: true)
         let estimatedAmount = bestPoolsPair?.getOutputAmount(fromInputAmount: inputAmount)
-        XCTAssertTrue(!bestPoolsPair!.first!.tokenBName.contains("BTC"))
-        XCTAssertTrue(!bestPoolsPair!.first!.tokenBName.contains("ETH"))
-        XCTAssertEqual(estimatedAmount, 28537)
+        XCTAssertTrue(bestPoolsPair?.count == 1)
+        XCTAssertEqual(estimatedAmount, 28401)
     }
     
     func testGetBestPoolsPairForEtimatedAmount() async throws {

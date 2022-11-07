@@ -136,7 +136,7 @@ public class OrcaSwap: OrcaSwapType {
     public func findBestPoolsPairForInputAmount(
         _ inputAmount: UInt64,
         from poolsPairs: [PoolsPair],
-        omitBTCETHIntermediaryToken: Bool
+        prefersDirectSwap: Bool
     ) throws -> PoolsPair? {
         var poolsPairs = poolsPairs
 //
@@ -167,22 +167,19 @@ public class OrcaSwap: OrcaSwapType {
         // For example: USDC -> wstETH -> stSOL
         // The transaction might be rejected because the input amount and output amount of intermediary token (wstETH) is too small
         // To temporarily fix this issue, prefers direct route or transitive route without ETH, BTC
-        var bestPoolsPairWithoutETHBTC: PoolsPair?
-        if omitBTCETHIntermediaryToken {
-            bestPoolsPairWithoutETHBTC = poolsPairs.first(where: {
-                $0.count == 1 ||
-                ( !$0[0].tokenBName.contains("ETH") && !$0[0].tokenBName.contains("BTC") )
-            })
+        var bestDirectPoolsPair: PoolsPair?
+        if prefersDirectSwap {
+            bestDirectPoolsPair = poolsPairs.first(where: {$0.count == 1})
         }
         
-        return bestPoolsPairWithoutETHBTC ?? poolsPairs.first
+        return bestDirectPoolsPair ?? poolsPairs.first
     }
     
     /// Find best pool to swap from estimated amount
     public func findBestPoolsPairForEstimatedAmount(
         _ estimatedAmount: UInt64,
         from poolsPairs: [PoolsPair],
-        omitBTCETHIntermediaryToken: Bool
+        prefersDirectSwap: Bool
     ) throws -> PoolsPair? {
         var poolsPairs = poolsPairs
 //
@@ -210,16 +207,13 @@ public class OrcaSwap: OrcaSwapType {
         // For some case when swaping small amount (how small?) which involved BTC or ETH
         // For example: USDC -> wstETH -> stSOL
         // The transaction might be rejected because the input amount and output amount of intermediary token (wstETH) is too small
-        // To temporarily fix this issue, prefers direct route or transitive route without ETH, BTC
-        var bestPoolsPairWithoutETHBTC: PoolsPair?
-        if omitBTCETHIntermediaryToken {
-            bestPoolsPairWithoutETHBTC = poolsPairs.first(where: {
-                $0.count == 1 ||
-                ( !$0[0].tokenBName.contains("ETH") && !$0[0].tokenBName.contains("BTC") )
-            })
+        // To temporarily fix this issue, prefers direct route
+        var bestDirectPoolsPair: PoolsPair?
+        if prefersDirectSwap {
+            bestDirectPoolsPair = poolsPairs.first(where: {$0.count == 1})
         }
         
-        return bestPoolsPairWithoutETHBTC ?? poolsPairs.first
+        return bestDirectPoolsPair ?? poolsPairs.first
     }
     
     /// Get liquidity provider fee
