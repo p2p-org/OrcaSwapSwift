@@ -30,7 +30,7 @@ public struct Pool: Codable, Equatable {
     let ownerWithdrawFeeDenominator: UInt64
     let hostFeeNumerator: UInt64
     let hostFeeDenominator: UInt64
-    var tokenAName: String
+    public internal(set) var tokenAName: String
     public internal(set) var tokenBName: String
     let curveType: String
     let amp: UInt64?
