@@ -132,7 +132,8 @@ public class OrcaSwap: OrcaSwapType {
     /// Find best pool to swap from input amount
     public func findBestPoolsPairForInputAmount(
         _ inputAmount: UInt64,
-        from poolsPairs: [PoolsPair]
+        from poolsPairs: [PoolsPair],
+        omitBTCETHIntermediaryToken: Bool
     ) throws -> PoolsPair? {
         var poolsPairs = poolsPairs
 //
@@ -153,16 +154,32 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         poolsPairs = poolsPairs.filter {
+            !$0.isEmpty &&
+            $0.count <= 2 &&
             $0.getOutputAmount(fromInputAmount: inputAmount) ?? 0 > 0
         }
         
-        return poolsPairs.first
+        // TODO: - Think about better solution!
+        // For some case when swaping small amount (how small?) which involved BTC or ETH
+        // For example: USDC -> wstETH -> stSOL
+        // The transaction might be rejected because the input amount and output amount of intermediary token (wstETH) is too small
+        // To temporarily fix this issue, prefers direct route or transitive route without ETH, BTC
+        var bestPoolsPairWithoutETHBTC: PoolsPair?
+        if omitBTCETHIntermediaryToken {
+            bestPoolsPairWithoutETHBTC = poolsPairs.first(where: {
+                $0.count == 1 ||
+                ( !$0[0].tokenBName.contains("ETH") && !$0[0].tokenBName.contains("BTC") )
+            })
+        }
+        
+        return bestPoolsPairWithoutETHBTC ?? poolsPairs.first
     }
     
     /// Find best pool to swap from estimated amount
     public func findBestPoolsPairForEstimatedAmount(
         _ estimatedAmount: UInt64,
-        from poolsPairs: [PoolsPair]
+        from poolsPairs: [PoolsPair],
+        omitBTCETHIntermediaryToken: Bool
     ) throws -> PoolsPair? {
         var poolsPairs = poolsPairs
 //
@@ -181,10 +198,25 @@ public class OrcaSwap: OrcaSwapType {
         }
         
         poolsPairs = poolsPairs.filter {
+            !$0.isEmpty &&
+            $0.count <= 2 &&
             $0.getInputAmount(fromEstimatedAmount: estimatedAmount) ?? 0 > 0
         }
         
-        return poolsPairs.first
+        // TODO: - Think about better solution!
+        // For some case when swaping small amount (how small?) which involved BTC or ETH
+        // For example: USDC -> wstETH -> stSOL
+        // The transaction might be rejected because the input amount and output amount of intermediary token (wstETH) is too small
+        // To temporarily fix this issue, prefers direct route or transitive route without ETH, BTC
+        var bestPoolsPairWithoutETHBTC: PoolsPair?
+        if omitBTCETHIntermediaryToken {
+            bestPoolsPairWithoutETHBTC = poolsPairs.first(where: {
+                $0.count == 1 ||
+                ( !$0[0].tokenBName.contains("ETH") && !$0[0].tokenBName.contains("BTC") )
+            })
+        }
+        
+        return bestPoolsPairWithoutETHBTC ?? poolsPairs.first
     }
     
     /// Get liquidity provider fee
