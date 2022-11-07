@@ -137,7 +137,7 @@ public class OrcaSwap: OrcaSwapType {
         _ inputAmount: UInt64,
         from poolsPairs: [PoolsPair]
     ) throws -> PoolsPair? {
-//        var poolsPairs = poolsPairs
+        var poolsPairs = poolsPairs
 //
 //        // filter out deprecated pools
 //        let indeprecatedPools = poolsPairs.filter {!$0.contains(where: {$0.deprecated == true})}
@@ -147,19 +147,19 @@ public class OrcaSwap: OrcaSwapType {
         
         guard poolsPairs.count > 0 else {return nil}
         
-        var bestPools: [Pool]?
-        var bestEstimatedAmount: UInt64 = 0
-        
-        for pair in poolsPairs {
-            guard let estimatedAmount = pair.getOutputAmount(fromInputAmount: inputAmount)
-            else {continue}
-            if estimatedAmount > bestEstimatedAmount {
-                bestEstimatedAmount = estimatedAmount
-                bestPools = pair
-            }
+        // sort
+        poolsPairs.sort { pair1, pair2 in
+            let estimatedAmount1 = pair1.getOutputAmount(fromInputAmount: inputAmount) ?? 0
+            let estimatedAmount2 = pair2.getOutputAmount(fromInputAmount: inputAmount) ?? 0
+            
+            return estimatedAmount1 > estimatedAmount2
         }
         
-        return bestPools
+        let bestPoolsPair = poolsPairs.first(
+            where: {$0.getOutputAmount(fromInputAmount: inputAmount) ?? 0 > 0}
+        )
+        
+        return bestPoolsPair
     }
     
     /// Find best pool to swap from estimated amount
@@ -167,7 +167,7 @@ public class OrcaSwap: OrcaSwapType {
         _ estimatedAmount: UInt64,
         from poolsPairs: [PoolsPair]
     ) throws -> PoolsPair? {
-//        var poolsPairs = poolsPairs
+        var poolsPairs = poolsPairs
 //
 //        // filter out deprecated pools
 //        let indeprecatedPools = poolsPairs.filter {!$0.contains(where: {$0.deprecated == true})}
@@ -175,21 +175,19 @@ public class OrcaSwap: OrcaSwapType {
 //            poolsPairs = indeprecatedPools
 //        }
         
-        guard poolsPairs.count > 0 else {return nil}
-        
-        var bestPools: [Pool]?
-        var bestInputAmount: UInt64 = .max
-        
-        for pair in poolsPairs {
-            guard let inputAmount = pair.getInputAmount(fromEstimatedAmount: estimatedAmount)
-            else {continue}
-            if inputAmount < bestInputAmount {
-                bestInputAmount = inputAmount
-                bestPools = pair
-            }
+        // sort
+        poolsPairs.sort { pair1, pair2 in
+            let inputAmount1 = pair1.getInputAmount(fromEstimatedAmount: estimatedAmount) ?? 0
+            let inputAmount2 = pair2.getInputAmount(fromEstimatedAmount: estimatedAmount) ?? 0
+            
+            return inputAmount1 < inputAmount2
         }
         
-        return bestPools
+        let bestPoolsPair = poolsPairs.first(
+            where: {$0.getInputAmount(fromEstimatedAmount: estimatedAmount) ?? 0 > 0}
+        )
+        
+        return bestPoolsPair
     }
     
     /// Get liquidity provider fee
