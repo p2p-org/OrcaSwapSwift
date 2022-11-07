@@ -18,7 +18,6 @@ public class OrcaSwap: OrcaSwapType {
     
     var info: SwapInfo?
     let balancesCache = BalancesCache()
-    let locker = NSLock()
     
     // MARK: - Initializer
     public init(
@@ -64,9 +63,7 @@ public class OrcaSwap: OrcaSwapType {
         )
         
         // save cache
-        locker.lock()
         info = swapInfo
-        locker.unlock()
     }
     
     /// Get token's mint address by its name
@@ -155,11 +152,11 @@ public class OrcaSwap: OrcaSwapType {
             return estimatedAmount1 > estimatedAmount2
         }
         
-        let bestPoolsPair = poolsPairs.first(
-            where: {$0.getOutputAmount(fromInputAmount: inputAmount) ?? 0 > 0}
-        )
+        poolsPairs = poolsPairs.filter {
+            $0.getOutputAmount(fromInputAmount: inputAmount) ?? 0 > 0
+        }
         
-        return bestPoolsPair
+        return poolsPairs.first
     }
     
     /// Find best pool to swap from estimated amount
@@ -183,11 +180,11 @@ public class OrcaSwap: OrcaSwapType {
             return inputAmount1 < inputAmount2
         }
         
-        let bestPoolsPair = poolsPairs.first(
-            where: {$0.getInputAmount(fromEstimatedAmount: estimatedAmount) ?? 0 > 0}
-        )
+        poolsPairs = poolsPairs.filter {
+            $0.getInputAmount(fromEstimatedAmount: estimatedAmount) ?? 0 > 0
+        }
         
-        return bestPoolsPair
+        return poolsPairs.first
     }
     
     /// Get liquidity provider fee
