@@ -18,6 +18,7 @@ public class OrcaSwap: OrcaSwapType {
     
     var info: SwapInfo?
     let balancesCache = BalancesCache()
+    let locker = NSLock()
     
     // MARK: - Initializer
     public init(
@@ -63,7 +64,9 @@ public class OrcaSwap: OrcaSwapType {
         )
         
         // save cache
+        locker.lock()
         info = swapInfo
+        locker.unlock()
     }
     
     /// Get token's mint address by its name
