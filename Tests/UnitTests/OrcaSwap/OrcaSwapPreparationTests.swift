@@ -6,6 +6,8 @@ class OrcaSwapPreparationTests: XCTestCase {
     let btcMint = "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E"
     let ethMint = "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"
     let socnMint = "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm"
+    let usdcMint = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    let stSOLMint = "7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj"
     
     fileprivate var orcaSwap: OrcaSwap!
     
@@ -94,19 +96,33 @@ class OrcaSwapPreparationTests: XCTestCase {
         XCTAssertEqual(ethSOLAquafarm.tokenBName, "ETH")
     }
     
-    func testGetBestPoolsPair() async throws {
-        // when user enter input amount = 0.1 BTC
+    func testGetBestPoolsPairForInputAmount() async throws {
+        // when user enter input amount = 0.1 BTC -> ETH
         let inputAmount: UInt64 = 100000 // 0.1 BTC
         let poolsPairs = try await orcaSwap.getTradablePoolsPairs(fromMint: btcMint, toMint: ethMint)
         let bestPoolsPair = try orcaSwap.findBestPoolsPairForInputAmount(inputAmount, from: poolsPairs)
         let estimatedAmount = bestPoolsPair?.getOutputAmount(fromInputAmount: inputAmount)
         XCTAssertEqual(estimatedAmount, 1588996) // 1.588996 ETH
-        
+    }
+    
+    func testGetBestPoolsPairForInputAmountWithSmallAmount() async throws {
+        // when user enter input amount = 0.001 USDC -> stSOL
+        // needs to omit transitive swap with BTC or ETH as intermediary token
+        let inputAmount: UInt64 = 1000
+        let poolsPairs = try await orcaSwap.getTradablePoolsPairs(fromMint: usdcMint, toMint: stSOLMint)
+        let bestPoolsPair = try orcaSwap.findBestPoolsPairForInputAmount(inputAmount, from: poolsPairs, prefersDirectSwap: true)
+        let estimatedAmount = bestPoolsPair?.getOutputAmount(fromInputAmount: inputAmount)
+        XCTAssertTrue(bestPoolsPair?.count == 1)
+        XCTAssertEqual(estimatedAmount, 28401)
+    }
+    
+    func testGetBestPoolsPairForEtimatedAmount() async throws {
         // when user enter estimated amount that he wants to receive as 1.6 ETH
-        let estimatedAmount2: UInt64 = 1600000
-        let bestPoolsPair2 = try orcaSwap.findBestPoolsPairForEstimatedAmount(estimatedAmount2, from: poolsPairs)
-        let inputAmount2 = bestPoolsPair2?.getInputAmount(fromEstimatedAmount: estimatedAmount2)
-        XCTAssertEqual(inputAmount2, 100697) // 0.100697 BTC
+        let estimatedAmount: UInt64 = 1600000
+        let poolsPairs = try await orcaSwap.getTradablePoolsPairs(fromMint: btcMint, toMint: ethMint)
+        let bestPoolsPair = try orcaSwap.findBestPoolsPairForEstimatedAmount(estimatedAmount, from: poolsPairs)
+        let inputAmount = bestPoolsPair?.getInputAmount(fromEstimatedAmount: estimatedAmount)
+        XCTAssertEqual(inputAmount, 100697) // 0.100697 BTC
     }
     
     // MARK: - SOCN -> SOL -> BTC (Reversed)
@@ -232,6 +248,146 @@ private class MockSolanaAPIClient: JSONRPCAPIClient {
             return .init(amount: 300343.554305, decimals: 6)
         }
         
+        if pubkey == "HQ2XUmQefvBdpN8nseBSWNP2D1crncodLL73AWnYBiSy" {
+            return .init(amount: 9032.746220515, decimals: 9)
+        }
+        
+        if pubkey == "ANP74VNsHwSrq9uUSjiSNyNWvf6ZPrKTmE4gHoNd13Lg" {
+            return .init(amount: 61722.966624048, decimals: 9)
+        }
+        
+        if pubkey == "9SEBxqhP8sTAzmfiQfCPim1MqQXuDPb6fkGzJF7Z339i" {
+            return .init(amount: 35843.903635886, decimals: 9)
+        }
+        
+        if pubkey == "G45yhM5mZ5RXZpLxGWLk3PVzdAp33z8aH6F9mLW8fQj3" {
+            return .init(amount: 1259503.315676, decimals: 6)
+        }
+        
+        if pubkey == "CeSEpgqc3zV8xDr7Q6PiwJju6a6e92wpAv7Kg6QyFfQB" {
+            return .init(amount: 11421.897726145, decimals: 9)
+        }
+        
+        if pubkey == "FTrSPUnMKmdKkNekKvVUQY1nunr2kWwohMHmBusd79Vj" {
+            return .init(amount: 10655.245334194, decimals: 9)
+        }
+        
+        if pubkey == "9KpjcpKwhoFPbixvKDfcAhBQcVXk1CSBTGsJdzojDPRv" {
+            return .init(amount: 226.6159578, decimals: 8)
+        }
+        
+        if pubkey == "5c4tzhRVaCxpmu8o3HrEZ8PWBDKSR6QNkBdQrUo9oe3e" {
+            return .init(amount: 0.00415402, decimals: 8)
+        }
+        
+        if pubkey == "BAMiBNk9j6Z9LLdZzzGScHDFQas58uLqW4GGX4ndq7K6" {
+            return .init(amount: 26455.575967548, decimals: 9)
+        }
+        
+        if pubkey == "8y8X4JuZn1MckRo5J6rirpr2Dxj1RKQshj7VzuX6dMUw" {
+            return .init(amount: 57964.819205999, decimals: 9)
+        }
+        
+        if pubkey == "5HaG31FQS4McBVcHxVfwaKaWXE3VCGqvJ1ZDkTxs94cQ" {
+            return .init(amount: 360430.732774, decimals: 6)
+        }
+        
+        if pubkey == "8WhAF65WbdsRAzGQF66oLsBZwbeXbU5WtxX7pA8SwjK" {
+            return .init(amount: 14.533751, decimals: 6)
+        }
+        
+        if pubkey == "Fb3XpEJgghTURUGd1wphWr93ruX5egnesfdZtjWCxJFy" {
+            return .init(amount: 233.3044149, decimals: 8)
+        }
+        
+        if pubkey == "6uUn2okWk5v4x9Gc4n2LLGHtWoa9tmizHq1363dW7t9W" {
+            return .init(amount: 159976.903632, decimals: 6)
+        }
+        
+        if pubkey == "Ajf4bxNoKCyFVfV35sRTgGwZK1dfJJJVXgNFs7ncC5EF" {
+            return .init(amount: 929618.189202, decimals: 6)
+        }
+        
+        if pubkey == "EjUNm7Lzp6X8898JiCU28SbfQBfsYoWaViXUhCgizv82" {
+            return .init(amount: 1315.19909, decimals: 6)
+        }
+        
+        if pubkey == "AiwmnLy7xPT28dqZpkRm6i1ZGwELUCzCsuN92v4JkSeU" {
+            return .init(amount: 164720.899813, decimals: 6)
+        }
+        
+        if pubkey == "2teAyRLAU716sCj9v2634Wi4wcLqtRvV9upXaRvDSFm1" {
+            return .init(amount: 235.13607035, decimals: 8)
+        }
+
+        if pubkey == "GFso9SAGakm8ZFa3rmuonuerbcQ8ZbACNZN7idkKR5nw" {
+            return .init(amount: 76.825693809, decimals: 9)
+        }
+
+        if pubkey == "EZ7pJskN2a4pDknrdkLzGDHpzjbfgdBj3Tt594K9HZbL" {
+            return .init(amount: 73612.434465, decimals: 6)
+        }
+
+        if pubkey == "C1ZrV56rf1wbDzcnHY6FpNaVmzT5D8WtyEKS1FAGrboe" {
+            return .init(amount: 1376.024221, decimals: 6)
+        }
+
+        if pubkey == "EDukSdAegSUtKsGi6wdKTpaBuYK9ZcVj9Uz1f39ffdgi" {
+            return .init(amount: 4785.518157, decimals: 6)
+        }
+
+        if pubkey == "EnbNxeehxrAJXxyWupFcs7zsJN3Zob4nJmpFGS8ninm8" {
+            return .init(amount: 8700.356070862, decimals: 9)
+        }
+
+        if pubkey == "GZWYWkbZ63teAW3tUaThq7k4NMp67TqwF94TqAMRSPx4" {
+            return .init(amount: 44087.865839, decimals: 6)
+        }
+
+        if pubkey == "DMuVdnkRsqP7v8exbrdHNn7WoViNLjf4PVanEQtwgFZ6" {
+            return .init(amount: 222.31672, decimals: 6)
+        }
+        
+
+        if pubkey == "AFNaWHH7ZGFjB7y7jmPM7jVs7QBAciffu7Z5tZidRHPR" {
+            return .init(amount: 7.141099, decimals: 6)
+        }
+
+
+        if pubkey == "FdiTt7XQ94fGkgorywN1GuXqQzmURHCDgYtUutWRcy4q" {
+            return .init(amount: 573.346092151, decimals: 9)
+        }
+
+
+        if pubkey == "75HgnSvXbWKZBpZHveX68ZzAhDqMzNDS29X6BGLtxMo1" {
+            return .init(amount: 2028563.343853, decimals: 6)
+        }
+
+
+        if pubkey == "7VcwKUtdKnvcgNhZt5BQHsbPrXLxhdVomsgrr7k2N5P5" {
+            return .init(amount: 18799.43528, decimals: 6)
+        }
+
+        if pubkey == "9oaFyrMCwxKE6kBQRP5v9Jo5Uh39Y5p2fFaqGtcxnjYr" {
+            return .init(amount: 4783.364077, decimals: 6)
+        }
+//
+//        if pubkey == "<#EjUNm7Lzp6X8898JiCU28SbfQBfsYoWaViXUhCgizv82#>" {
+//            return .init(amount: <#1315.19909#>, decimals: <#6#>)
+//        }
+//
+//        if pubkey == "<#EjUNm7Lzp6X8898JiCU28SbfQBfsYoWaViXUhCgizv82#>" {
+//            return .init(amount: <#1315.19909#>, decimals: <#6#>)
+//        }
+
+//
+//        if pubkey == "<#EjUNm7Lzp6X8898JiCU28SbfQBfsYoWaViXUhCgizv82#>" {
+//            return .init(amount: <#1315.19909#>, decimals: <#6#>)
+//        }
+//
+//        if pubkey == "<#EjUNm7Lzp6X8898JiCU28SbfQBfsYoWaViXUhCgizv82#>" {
+//            return .init(amount: <#1315.19909#>, decimals: <#6#>)
+//        }
         fatalError()
     }
 }

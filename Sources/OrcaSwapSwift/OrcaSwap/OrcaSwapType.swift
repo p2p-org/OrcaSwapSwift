@@ -13,8 +13,8 @@ public protocol OrcaSwapType {
     func getMint(tokenName: String) -> String?
     func findPosibleDestinationMints(fromMint: String) throws -> [String]
     func getTradablePoolsPairs(fromMint: String, toMint: String) async throws -> [PoolsPair]
-    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
-    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair?
+    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64, from poolsPairs: [PoolsPair], prefersDirectSwap: Bool) throws -> PoolsPair?
+    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64, from poolsPairs: [PoolsPair], prefersDirectSwap: Bool) throws -> PoolsPair?
     func getLiquidityProviderFee(
         bestPoolsPair: PoolsPair?,
         inputAmount: Double?,
@@ -46,4 +46,13 @@ public protocol OrcaSwapType {
         slippage: Double,
         isSimulation: Bool
     ) async throws -> SwapResponse
+}
+
+public extension OrcaSwapType {
+    func findBestPoolsPairForInputAmount(_ inputAmount: UInt64,from poolsPairs: [PoolsPair]) throws -> PoolsPair? {
+        try findBestPoolsPairForInputAmount(inputAmount, from: poolsPairs, prefersDirectSwap: false)
+    }
+    func findBestPoolsPairForEstimatedAmount(_ estimatedAmount: UInt64, from poolsPairs: [PoolsPair]) throws -> PoolsPair? {
+        try findBestPoolsPairForEstimatedAmount(estimatedAmount, from: poolsPairs, prefersDirectSwap: false)
+    }
 }
