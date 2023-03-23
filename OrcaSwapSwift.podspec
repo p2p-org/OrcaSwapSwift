@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'OrcaSwapSwift'
-  s.version          = '2.1.1'
+  s.version          = '3.0.0'
   s.summary          = 'A client for OrcaSwap written in Swift.'
   s.description      = <<-DESC
 TODO: Add long description of the pod here.
@@ -25,5 +25,5 @@ TODO: Add long description of the pod here.
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
   # s.frameworks = 'UIKit', 'MapKit'
-  s.dependency 'SolanaSwift', '~> 2'
+  s.dependency 'SolanaSwift', '~> 3'
 end
