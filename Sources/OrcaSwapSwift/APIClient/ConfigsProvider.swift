@@ -18,17 +18,24 @@ extension OrcaSwapConfigsProvider {
 }
 
 public class NetworkConfigsProvider: OrcaSwapConfigsProvider {
+    public actor Cache {
+        var data: Data?
+        
+        func setData(data: Data?) {
+            self.data = data
+        }
+    }
+    
     public let network: String
-    public var cache: Data?
+    public private(set) var cache = Cache()
     private let urlString = "https://orca.key.app/info"
-    private let locker = NSLock()
     
     public init(network: String) {
         self.network = network
     }
     
     public func getData(reload: Bool = false) async throws -> Data {
-        if !reload, let cache = cache {
+        if !reload, let cache = await cache.data {
             return cache
         }
         // hack: network
@@ -46,9 +53,7 @@ public class NetworkConfigsProvider: OrcaSwapConfigsProvider {
             (data, _) = try await URLSession.shared.data(from: url)
         }
         
-        locker.lock()
-        cache = data
-        locker.unlock()
+        await cache.setData(data: data)
         
         return data
     }

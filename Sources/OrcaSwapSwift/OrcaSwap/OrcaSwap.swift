@@ -568,7 +568,7 @@ public class OrcaSwap: OrcaSwapType {
         )
         
         var instructions = accountInstructions.instructions + accountInstructions.cleanupInstructions
-        var additionalSigners = [Account]()
+        var additionalSigners = [KeyPair]()
         if let wsolAccountInstructions = wsolAccountInstructions {
             additionalSigners.append(contentsOf: wsolAccountInstructions.signers)
             instructions.insert(contentsOf: wsolAccountInstructions.instructions, at: 0)
