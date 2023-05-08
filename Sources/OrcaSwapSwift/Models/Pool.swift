@@ -305,7 +305,7 @@ extension Pool {
 
         instructions.append(swapInstruction)
 
-        var signers = [Account]()
+        var signers = [KeyPair]()
         signers.append(contentsOf: sourceAccountInstructions.signers)
         signers.append(contentsOf: destinationAccountInstructions.signers)
 
