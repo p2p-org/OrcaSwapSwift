@@ -423,14 +423,22 @@ public class OrcaSwap: OrcaSwapType {
                 where: { error in
                     if let error = error as? SolanaError {
                         switch error {
-                        case .invalidResponse(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
-                            return true
                         case .transactionError(_, logs: let logs) where logs.contains("Program log: Error: InvalidAccountData"):
                             return true
                         default:
                             break
                         }
                     }
+                    
+                    if let error = error as? SolanaSwift.APIClientError {
+                        switch error {
+                        case .responseError(let error) where error.data?.logs?.contains("Program log: Error: InvalidAccountData") == true:
+                            return true
+                        default:
+                            break
+                        }
+                    }
+                    
                     return false
                 },
                 maxRetryCount: .max,
